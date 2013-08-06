@@ -1,0 +1,20 @@
+{
+    "main_menu":{
+        "campaign":"Campagne",
+        "mission":"Missions",
+        "options":"Options",
+        "quit":"Quitter"
+    },
+    "camp_menu":{
+        "stitre":"Campagne :",
+        "return_btn":"Retour"
+    },
+    "mission_menu":{
+        "stitre":"Missions :",
+        "return_btn":"Retour"
+    },
+    "option_menu":{
+        "stitre":"Options :",
+        "return_btn":"Retour"
+    }
+}
