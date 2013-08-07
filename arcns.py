@@ -234,6 +234,7 @@ class mainScene:
             movePara.append(self.lst_gui[it].scaleInterval(0.5,scale_texts[3-self.lst_menus[1]+it-4]))
         movePara.start(); self.lst_gui[self.lst_menus[1]+4]["state"] = DGG.NORMAL
     def valid_main_menu(self):
+        self.app.wp.setCursorHidden(True); base.win.requestProperties(self.app.wp)
         self.app.ignore("mouse1"); self.app.ignore("wheel_up"); self.app.ignore("wheel_down")
         self.app.ignore("arrow_up"); self.app.ignore("arrow_down"); self.app.ignore("enter")
         if self.lst_menus[1] == 0 or self.lst_menus[1] == 1:
@@ -252,7 +253,7 @@ class mainScene:
             #
             #
             pass
-        elif self.lst_menis[1] == 2:
+        elif self.lst_menus[1] == 2:
             #
             #TODO : reset all last config unvalid
             #
@@ -266,9 +267,7 @@ class mainScene:
         taskMgr.doMethodLater(2.5,self.aux_affmenu_task,"main aff aux menu task")
         self.lst_menus[0] = 1
     def aux_affmenu_task(self,task):
-        #
-        #TODO
-        #
+        self.app.wp.setCursorHidden(False); base.win.requestProperties(self.app.wp)
         self.lst_gui[self.lst_menus[1]+1].show()
         #
         #TODO : re accept all the inputs
@@ -279,18 +278,16 @@ class mainScene:
         #
         return task.done
     def aux_quitmenu(self):
+        self.lst_gui[self.lst_menus[1]+1].hide()
+        self.app.accept("escape",sys.exit,[0]); self.app.ignore("backspace")
         #
-        self.lst_gui[self.lst_menu[1]+1].hide()
-        #
-        #
-        #TODO
+        #TODO : ignore inputs
         #
         movePara = Parallel(name="aux_to_main")
         movePara.append(camera.posInterval(2,Point3(0,-25,12)))
         movePara.append(camera.hprInterval(2,Point3(0,-10,0)))
         movePara.start()
-        #
-        #
+        taskMgr.doMethodLater(2.5,self.main_affmm_task,"main aff main menu task")
     def valid_aux_menu(self):
         #
         #
