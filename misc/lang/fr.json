@@ -5,16 +5,21 @@
         "options":"Options",
         "quit":"Quitter"
     },
+    "aux_menu":{"return_btn":"Menu principal"},
     "camp_menu":{
-        "stitre":"Campagne :",
-        "return_btn":"Retour"
+        "stitre":"Campagne :"
     },
     "mission_menu":{
-        "stitre":"Missions :",
-        "return_btn":"Retour"
+        "stitre":"Missions :"
     },
     "option_menu":{
         "stitre":"Options :",
-        "return_btn":"Retour"
+        "windowed":" : Mode fenêtré",
+        "fullscreen":" : Plein écran",
+        "res_chx":"Résolution :",
+        "lang_chx":"Langue :",
+        "btn_valid":"Valider",
+        "btn_reset":"Annuler",
+        "btn_default":"Valeur par défaut"
     }
 }

@@ -14,23 +14,14 @@ from direct.filter.CommonFilters import CommonFilters
 from direct.stdpy.file import *
 from panda3d.core import Point3, Vec4, Vec3, BitMask32, NodePath, PandaNode, TextNode
 from panda3d.core import PointLight, DirectionalLight, Spotlight, AmbientLight, PerspectiveLens
-from panda3d.core import LightRampAttrib, WindowProperties, Filename
+from panda3d.core import LightRampAttrib, WindowProperties, Filename, CardMaker
 from panda3d.core import CollisionTraverser, CollisionNode, CollisionHandlerQueue, CollisionRay
 from panda3d.core import Geom, GeomNode, GeomVertexData, GeomVertexFormat, GeomVertexWriter, GeomPrimitive, GeomTriangles
+from pandac.PandaModules import TransparencyAttrib
 
 import direct.directbase.DirectStart
-import math, sys, json
-
-#fonction for arrow square
-def square_arrow():
-    vdata = GeomVertexData("square",GeomVertexFormat.getV3c4(),Geom.UHStatic)
-    vertex = GeomVertexWriter(vdata,"vertex"); color = GeomVertexWriter(vdata,"color")
-    vertex.addData3f(1,-0.8,-0.1); vertex.addData3f(1,0.6,-0.1); vertex.addData3f(-1,0.6,-0.1); vertex.addData3f(-1,-0.8,-0.1)
-    color.addData4f(1,0,0,1); color.addData4f(1,0,0,1); color.addData4f(1,0,0,1); color.addData4f(1,0,0,1)
-    prim = GeomTriangles(Geom.UHStatic); prim.addVertices(0,1,2); prim.addVertices(0,2,3)
-    geom = Geom(vdata); geom.addPrimitive(prim); node = GeomNode("square_arrow"); node.addGeom(geom)
-    nodp = render.attachNewNode(node); nodp.hide(); nodp.node().setIntoCollideMask(BitMask32.bit(1))
-    return nodp
+import math, sys
+import json
 
 #main scene class
 class mainScene:
@@ -69,15 +60,15 @@ class mainScene:
         #
         #arrows (FOR MAIN MENU)
         arr_up = render.attachNewNode("arrow-up"); arr_up.setHpr(0,90,0); arr_up.setPos(4.5,1.5,7); arr_up.hide()
-        self.app.arrow.instanceTo(arr_up); arr_up.reparentTo(self.app.pickly_node)
+        self.app.arrow.instanceTo(arr_up); arr_up.reparentTo(render)
         self.app.lst_arrows.append({"name":"arr_up","status":0,"node":arr_up,"posn":[4.5,1.5,7],"posh":[4.5,1.7,7.2]})
-        sqp_up = square_arrow(); sqp_up.node().setTag("arrow","up"); sqp_up.reparentTo(self.app.pickly_node)
-        sqp_up.setPos(4.5,1.5,7); sqp_up.setHpr(180,-90,0)
+        sqp_up = render.attachNewNode(self.app.c_arr.generate()); sqp_up.hide(); sqp_up.node().setIntoCollideMask(BitMask32.bit(1))
+        sqp_up.node().setTag("arrow","up"); sqp_up.reparentTo(self.app.pickly_node); sqp_up.setPos(4.5,1.5,7)
         arr_dn = render.attachNewNode("arrow-dn"); arr_dn.setHpr(180,-90,0); arr_dn.setPos(4.5,1.5,5); arr_dn.hide()
-        self.app.arrow.instanceTo(arr_dn); arr_dn.reparentTo(self.app.pickly_node)
+        self.app.arrow.instanceTo(arr_dn); arr_dn.reparentTo(render)
         self.app.lst_arrows.append({"name":"arr_dn","status":0,"node":arr_dn,"posn":[4.5,1.5,5],"posh":[4.5,1.7,4.8]})
-        sqp_dn = square_arrow(); sqp_dn.node().setTag("arrow","dn"); sqp_dn.reparentTo(self.app.pickly_node)
-        sqp_dn.setPos(4.5,1.5,5); sqp_dn.setHpr(0,90,0)
+        sqp_dn = render.attachNewNode(self.app.c_arr.generate()); sqp_dn.hide(); sqp_dn.node().setIntoCollideMask(BitMask32.bit(1))
+        sqp_dn.node().setTag("arrow","dn"); sqp_dn.reparentTo(self.app.pickly_node); sqp_dn.setPos(4.5,1.5,5.2)
         #
         #
         #TODO : add other arrows
@@ -115,50 +106,73 @@ class mainScene:
         quit_btn._DirectGuiBase__componentInfo["text2"][0].setFg((0.04,0.3,0.8,1))
         quit_btn.reparentTo(main_frame); quit_btn["state"] = DGG.DISABLED; self.lst_gui.append(quit_btn)
         #GUI : aux_menu -> campaign
+        camp_stitre = DirectLabel(text=self.app.lang["camp_menu"]["stitre"],scale=0.13,pos=(-1,0,0.7),text_bg=(1,1,1,0.8),
+            relief=None,text_font=self.app.arcFont,text_align=TextNode.ALeft)
+        camp_stitre.reparentTo(camp_frame)
+        #
         #
         #TODO
         #
         #
-        #
-        camp_stitre = DirectLabel(text=self.app.lang["camp_menu"]["stitre"],scale=0.12,pos=(-1,0,0.7),text_bg=(1,1,1,0.8),
-            relief=None,text_font=self.app.arcFont,text_align=TextNode.ALeft)
-        #
-        camp_stitre.reparentTo(camp_frame)
-        #
-        #camp_start = DirectButton(text=self)
+        #camp_start = DirectButton(text=self.app.lang["camp_menu"])
         #
         #text2 : over
         #text3 : disabled
         #
         #camp_start.reparentTo(camp_frame)
         #
-        camp_cancel = DirectButton(text=self.app.lang["camp_menu"]["return_btn"],scale=0.09,pos=(-0.9,0,0.55),text_bg=(1,1,1,0.8),
+        camp_cancel = DirectButton(text=self.app.lang["aux_menu"]["return_btn"],scale=0.08,pos=(-1.1,0,0.54),text_bg=(1,1,1,0.8),
             relief=None,text_font=self.app.arcFont,text_align=TextNode.ALeft,command=self.aux_quitmenu)
         camp_cancel._DirectGuiBase__componentInfo["text2"][0].setFg((0.04,0.3,0.8,1))
         camp_cancel.reparentTo(camp_frame); self.lst_gui.append(camp_cancel)
-        #
         #GUI : aux_menu -> missions
-        #
-        #TODO
-        #
-        mission_stitre = DirectLabel(text=self.app.lang["mission_menu"]["stitre"],scale=0.12,pos=(-1,0,0.7),text_bg=(1,1,1,0.8),
+        mission_stitre = DirectLabel(text=self.app.lang["mission_menu"]["stitre"],scale=0.13,pos=(-1,0,0.7),text_bg=(1,1,1,0.8),
             relief=None,text_font=self.app.arcFont,text_align=TextNode.ALeft)
-        #
         mission_stitre.reparentTo(mission_frame)
         #
+        #TODO
         #
         #
+        #
+        mission_cancel = DirectButton(text=self.app.lang["aux_menu"]["return_btn"],scale=0.09,pos=(-1.1,0,0.54),text_bg=(1,1,1,0.8),
+            relief=None,text_font=self.app.arcFont,text_align=TextNode.ALeft,command=self.aux_quitmenu)
+        mission_cancel._DirectGuiBase__componentInfo["text2"][0].setFg((0.04,0.3,0.8,1))
+        mission_cancel.reparentTo(mission_frame); self.lst_gui.append(mission_cancel)
         #GUI : aux_menu -> options
+        option_stitre = DirectLabel(text=self.app.lang["option_menu"]["stitre"],scale=0.13,pos=(-1,0,0.7),text_bg=(1,1,1,0.8),
+            relief=None,text_font=self.app.arcFont,text_align=TextNode.ALeft)
+        option_stitre.reparentTo(option_frame)
+        self.opt_var = [[self.app.main_config["fullscreen"]]]
+        opt_mode = [
+            DirectRadioButton(text=self.app.lang["option_menu"]["windowed"],variable=self.opt_var[0],value=[False],
+                text_align=TextNode.ALeft,scale=0.08,pos=(-1.1,0,0.4),text_font=self.app.arcFont,text_bg=(1,1,1,0.8),
+                relief=None,command=self.opt_change,extraArgs=[0]),
+            DirectRadioButton(text=self.app.lang["option_menu"]["fullscreen"],variable=self.opt_var[0],value=[True],
+                text_align=TextNode.ALeft,scale=0.08,pos=(-1.1,0,0.3),text_font=self.app.arcFont,text_bg=(1,1,1,0.8),
+                relief=None,command=self.opt_change,extraArgs=[0])]
+        for opt_mode_btn in opt_mode:
+            opt_mode_btn.setOthers(opt_mode); opt_mode_btn.reparentTo(option_frame); self.lst_gui.append(opt_mode_btn)
+        #
         #
         #TODO
         #
-        option_stitre = DirectLabel(text=self.app.lang["option_menu"]["stitre"],scale=0.12,pos=(-1,0,0.7),text_bg=(1,1,1,0.8),
-            relief=None,text_font=self.app.arcFont,text_align=TextNode.ALeft)
-        #
-        option_stitre.reparentTo(option_frame)
         #
         #
+        opt_chx_res = ""
         #
+        #
+        #
+        #opt_valid = DirectButton(text=self.app.lang["option_menu"][""]
+        #
+        opt_reset = ""
+        #
+        opt_default = ""
+        #
+        #
+        option_cancel = DirectButton(text=self.app.lang["aux_menu"]["return_btn"],scale=0.09,pos=(-1.1,0,0.54),text_bg=(1,1,1,0.8),
+            relief=None,text_font=self.app.arcFont,text_align=TextNode.ALeft,command=self.aux_quitmenu)
+        option_cancel._DirectGuiBase__componentInfo["text2"][0].setFg((0.04,0.3,0.8,1))
+        option_cancel.reparentTo(option_frame); self.lst_gui.append(option_cancel)
         #delayed tasks
         taskMgr.doMethodLater(6.5,self.main_start_task,"main start task")
         taskMgr.doMethodLater(9,self.main_stmm_task,"main start main menu task")
@@ -174,10 +188,15 @@ class mainScene:
         self.arc_main_menu.play("load")
         return task.done
     def main_affmm_task(self,task):
-        self.lst_gui[0].show(); self.lst_gui[self.lst_menus[1]+4]["state"] = DGG.NORMAL
-        self.app.lst_arrows[0]["node"].show(); self.app.lst_arrows[0]["status"] = 1; self.app.lst_arrows[1]["status"] = 1
+        self.app.change_cursor(1); self.lst_gui[0].show(); self.lst_gui[self.lst_menus[1]+4]["state"] = DGG.NORMAL
+        #
+        #TODO : test sur lst_menus[1]
+        #
+        self.app.lst_arrows[0]["node"].show()
+        #
+        #
+        self.app.lst_arrows[0]["status"] = 1; self.app.lst_arrows[1]["status"] = 1
         #capture de la souris
-        self.app.wp.setCursorHidden(False); base.win.requestProperties(self.app.wp)
         self.app.accept("mouse1",self.main_m_menu_state_change,[2])
         self.app.accept("wheel_up",self.main_m_menu_state_change,[0])
         self.app.accept("wheel_down",self.main_m_menu_state_change,[1])
@@ -234,9 +253,14 @@ class mainScene:
             movePara.append(self.lst_gui[it].scaleInterval(0.5,scale_texts[3-self.lst_menus[1]+it-4]))
         movePara.start(); self.lst_gui[self.lst_menus[1]+4]["state"] = DGG.NORMAL
     def valid_main_menu(self):
-        self.app.wp.setCursorHidden(True); base.win.requestProperties(self.app.wp)
+        #
+        #TODO : remplacer cursorhidden par nouvelle souris
+        #
+        #
+        #
         self.app.ignore("mouse1"); self.app.ignore("wheel_up"); self.app.ignore("wheel_down")
         self.app.ignore("arrow_up"); self.app.ignore("arrow_down"); self.app.ignore("enter")
+        self.app.lst_arrows[0]["status"] = 1; self.app.lst_arrows[1]["status"] = 1
         if self.lst_menus[1] == 0 or self.lst_menus[1] == 1:
             #
             #TODO : liste des sauvegardes disponibles
@@ -267,7 +291,6 @@ class mainScene:
         taskMgr.doMethodLater(2.5,self.aux_affmenu_task,"main aff aux menu task")
         self.lst_menus[0] = 1
     def aux_affmenu_task(self,task):
-        self.app.wp.setCursorHidden(False); base.win.requestProperties(self.app.wp)
         self.lst_gui[self.lst_menus[1]+1].show()
         #
         #TODO : re accept all the inputs
@@ -288,15 +311,18 @@ class mainScene:
         movePara.append(camera.hprInterval(2,Point3(0,-10,0)))
         movePara.start()
         taskMgr.doMethodLater(2.5,self.main_affmm_task,"main aff main menu task")
+        self.lst_menus[0] = 0
     def valid_aux_menu(self):
         #
         #
         #
         pass
-    def change_lang(self):
+    def opt_change(self,chx):
         #
         #
+        print "options change"
         #
+        print chx
         #
         pass
     def close_main_scene(self):
@@ -328,15 +354,26 @@ class game_scene:
 #class ArcnsApp(DirectObject):
 class ArcnsApp(DirectObject):
     def __init__(self): #basic init start
-        base.disableMouse()
-        self.wp = WindowProperties(); self.wp.setCursorFilename(Filename.binaryFilename("misc/cursors/main_cursor.ico"))
-        self.wp.setCursorHidden(True); base.win.requestProperties(self.wp)
+        base.disableMouse(); self.wp = WindowProperties(); self.wp.setCursorHidden(True); base.win.requestProperties(self.wp)
+        cm = CardMaker("cursor"); cm.setFrame(0,0.1,-0.13,0); self.cust_mouse = render.attachNewNode(cm.generate())
+        self.cust_mouse_tex = []
+        self.cust_mouse_tex.append(loader.loadTexture("models/cursors/blank_cursor.png"))
+        self.cust_mouse_tex.append(loader.loadTexture("models/cursors/main_cursor.png"))
+        #
+        #TODO : load others cursors
+        #
+        self.cust_mouse.setTexture(self.cust_mouse_tex[0])
+        self.cust_mouse.setTransparency(TransparencyAttrib.MAlpha)
+        self.cust_mouse.reparentTo(render2d); self.cust_mouse.setBin("fixed",100)
+        base.mouseWatcherNode.setGeometry(self.cust_mouse.node())
+        #text and background
         self.arcFont = base.loader.loadFont("misc/firstv2.ttf")
         textVersion = OnscreenText(text="v0.0",font=self.arcFont,pos=(1.15,-0.95),fg=(0,0,0,1),bg=(1,1,1,0.8))
         base.setBackgroundColor(1,1,1)
-        self.main_config = json.loads("".join([line.rstrip() for line in file("misc/config.json","rb")]))
+        self.main_config = json.loads("".join([line.rstrip().lstrip() for line in file("misc/config.json","rb")]))
         #arrows (GENERAL)
         self.arrow = loader.loadModel("models/static/arrow"); self.lst_arrows = []
+        self.c_arr = CardMaker("arrow_hide"); self.c_arr.setFrame(-1,1,-0.8,0.6)
         #light ramp
         self.rampnode = NodePath(PandaNode("temp node"))
         self.rampnode.setAttrib(LightRampAttrib.makeSingleThreshold(0.1,0.7))
@@ -347,12 +384,6 @@ class ArcnsApp(DirectObject):
         self.filterok = self.filters.setCartoonInk(separation=1)
         #keyboard inputs
         self.accept("escape",sys.exit,[0])
-        #
-        #TEMP TEST
-        self.accept("q",sys.exit,[0])
-        #TEMP TEST
-        #
-        #
         #lights
         self.lst_lghts = []
         #ambient light (permanent)
@@ -360,7 +391,7 @@ class ArcnsApp(DirectObject):
         self.alght = render.attachNewNode(self.alghtnode); render.setLight(self.alght)
         #language recup
         self.langtab = self.main_config["lang"][self.main_config["lang_chx"]]
-        self.lang = json.loads("".join([line.rstrip() for line in file("misc/lang/"+self.langtab[0]+".json","rb")]))
+        self.lang = json.loads("".join([line.rstrip().lstrip() for line in file("misc/lang/"+self.langtab[0]+".json","rb")]))
         #mouse handler
         self.mouse_trav = CollisionTraverser(); self.mouse_hand = CollisionHandlerQueue()
         self.pickerNode = CollisionNode('mouseRay'); self.pickerNP = camera.attachNewNode(self.pickerNode)
@@ -370,6 +401,8 @@ class ArcnsApp(DirectObject):
         self.pickly_node = render.attachNewNode("pickly_node")
         #init main scene
         self.scene = mainScene(self)
+    def change_cursor(self,chx):
+        self.cust_mouse.setTexture(self.cust_mouse_tex[chx])
     def change_screen(self):
         #
         #TODO and TEST
