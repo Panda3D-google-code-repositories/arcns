@@ -20,11 +20,41 @@ from panda3d.core import Geom, GeomNode, GeomVertexData, GeomVertexFormat, GeomV
 from pandac.PandaModules import TransparencyAttrib
 
 import direct.directbase.DirectStart
-import math, sys
-import json
+import math, sys, json
 
-#main scene class
-class mainScene:
+"""
+override functions
+"""
+def arcButton(txt,pos,cmd,scale=0.08,txtalgn=TextNode.ALeft,extraArgs=[]): #override button
+    ndp = DirectButton(text=txt,scale=scale,text_font=arcFont,pos=pos,text_bg=(1,1,1,0.8),relief=None,text_align=txtalgn,
+        command=cmd,extraArgs=extraArgs)
+    ndp._DirectGuiBase__componentInfo["text2"][0].setFg((0.03,0.3,0.8,1))
+    ndp._DirectGuiBase__componentInfo["text3"][0].setFg((0.3,0.3,0.3,1))
+    return ndp
+
+def arcLabel(txt,pos,scale=0.08,txtalgn=TextNode.ALeft): #override label
+    ndp = DirectLabel(text=txt,scale=scale,pos=pos,text_bg=(1,1,1,0.8),relief=None,text_font=arcFont,text_align=txtalgn)
+    return ndp
+
+def arcOptMenu(txt,pos,items,init=0,cmd=None,scale=0.08,change=1,txtalgn=TextNode.ALeft):
+    ndp = DirectOptionMenu(text=txt,scale=scale,pos=pos,items=items,initialitem=init,textMayChange=change,text_font=arcFont,
+        text_align=txtalgn,text_bg=(1,1,1,0.8),relief=None,highlightColor=(0.03,0.3,0.8,1),popupMarker_relief=None,
+        popupMarker_pos=(0,0,0),popupMarkerBorder=(0,0),item_text_font=arcFont)
+    return ndp
+
+def arcRadioButton(lst_rad,parent,gui,scale=0.08,txtalgn=TextNode.ALeft): #override radio button
+    lst_radio = []
+    for elt in lst_rad:
+        ndp = DirectRadioButton(text=elt[0],variable=elt[1],value=elt[2],command=elt[3],extraArgs=elt[4],
+            text_align=txtalgn,scale=scale,pos=elt[5],text_font=arcFont,text_bg=(1,1,1,0.8),relief=None)
+        lst_radio.append(ndp)
+    for elt in lst_radio:
+        elt.setOthers(lst_radio); elt.reparentTo(parent); gui.append(elt)
+
+"""
+scenes classes
+"""
+class mainScene: #main scene class
     def __init__(self,app):
         self.app = app
         camera.setPos(0,-62,12); camera.setHpr(0,-10,0)
@@ -50,15 +80,8 @@ class mainScene:
         #arc_main_menu
         self.arc_main_menu = Actor("models/dynamic/main_m_menu"); self.arc_main_menu.reparentTo(render); self.arc_main_menu.pose("load",1)
         #arc_aux_menu
-        #
-        #TODO
-        #
-        self.arc_aux_menu = Actor("models/dynamic/main_a_menu"); self.arc_aux_menu.reparentTo(render)
-        #
-        #self.arc_aux_menu.loop("basic")
-        #
-        #
-        #arrows (FOR MAIN MENU)
+        self.arc_aux_menu = Actor("models/dynamic/main_a_menu"); self.arc_aux_menu.reparentTo(render); self.arc_aux_menu.pose("load",1)
+        #arrows for main menu
         arr_up = render.attachNewNode("arrow-up"); arr_up.setHpr(0,90,0); arr_up.setPos(4.5,1.5,7); arr_up.hide()
         self.app.arrow.instanceTo(arr_up); arr_up.reparentTo(render)
         self.app.lst_arrows.append({"name":"arr_up","status":0,"node":arr_up,"posn":[4.5,1.5,7],"posh":[4.5,1.7,7.2]})
@@ -69,9 +92,15 @@ class mainScene:
         self.app.lst_arrows.append({"name":"arr_dn","status":0,"node":arr_dn,"posn":[4.5,1.5,5],"posh":[4.5,1.7,4.8]})
         sqp_dn = render.attachNewNode(self.app.c_arr.generate()); sqp_dn.hide(); sqp_dn.node().setIntoCollideMask(BitMask32.bit(1))
         sqp_dn.node().setTag("arrow","dn"); sqp_dn.reparentTo(self.app.pickly_node); sqp_dn.setPos(4.5,1.5,5.2)
+        #arrows for campaign menu
         #
+        #TODO : arrows up/down for save selection
         #
-        #TODO : add other arrows
+        #arrows for missions menu
+        #
+        #TODO : arrows up/down for mission selection
+        #
+        #TODO : arrows up/down for save selection
         #
         #
         #gates
@@ -82,97 +111,160 @@ class mainScene:
         self.roofs = base.loader.loadModel("models/static/main_roofs"); self.roofs.reparentTo(render); self.roofs.setPos(0,0,0)
         #GUI
         self.lst_menus = [0,0,0] #0 -> which menu, 1 -> val main_menu, 2 -> val aux_menu
-        self.lst_gui = []
+        self.lst_gui = {"frames":[],"main_frame":[],"camp_frame":[],"mission_frame":[],"option_frame":[]}
         #GUI : frames
-        main_frame = DirectFrame(); main_frame.hide(); self.lst_gui.append(main_frame)
-        camp_frame = DirectFrame(); camp_frame.hide(); self.lst_gui.append(camp_frame)
-        mission_frame = DirectFrame(); mission_frame.hide(); self.lst_gui.append(mission_frame)
-        option_frame = DirectFrame(); option_frame.hide(); self.lst_gui.append(option_frame)
+        main_frame = DirectFrame(); main_frame.hide(); self.lst_gui["frames"].append(main_frame)
+        camp_frame = DirectFrame(); camp_frame.hide(); self.lst_gui["frames"].append(camp_frame)
+        mission_frame = DirectFrame(); mission_frame.hide(); self.lst_gui["frames"].append(mission_frame)
+        option_frame = DirectFrame(); option_frame.hide(); self.lst_gui["frames"].append(option_frame)
         #GUI : main menu
-        campaign_btn = DirectButton(text=self.app.lang["main_menu"]["campaign"],scale=0.12,pos=(-0.15,0,-0.2),text_bg=(1,1,1,0.8),
-            relief=None,text_font=self.app.arcFont,text_align=TextNode.ALeft,command=self.valid_main_menu)
-        campaign_btn._DirectGuiBase__componentInfo["text2"][0].setFg((0.04,0.3,0.8,1))
-        campaign_btn.reparentTo(main_frame); campaign_btn["state"] = DGG.DISABLED; self.lst_gui.append(campaign_btn)
-        mission_btn = DirectButton(text=self.app.lang["main_menu"]["mission"],scale=0.1,pos=(-0.19,0,-0.34),text_bg=(1,1,1,0.8),
-            relief=None,text_font=self.app.arcFont,text_align=TextNode.ALeft,command=self.valid_main_menu)
-        mission_btn._DirectGuiBase__componentInfo["text2"][0].setFg((0.04,0.3,0.8,1))
-        mission_btn.reparentTo(main_frame); mission_btn["state"] = DGG.DISABLED; self.lst_gui.append(mission_btn)
-        options_btn = DirectButton(text=self.app.lang["main_menu"]["options"],scale=0.09,pos=(-0.26,0,-0.47),text_bg=(1,1,1,0.8),
-            relief=None,text_font=self.app.arcFont,text_align=TextNode.ALeft,command=self.valid_main_menu)
-        options_btn._DirectGuiBase__componentInfo["text2"][0].setFg((0.04,0.3,0.8,1))
-        options_btn.reparentTo(main_frame); options_btn["state"] = DGG.DISABLED; self.lst_gui.append(options_btn)
-        quit_btn = DirectButton(text=self.app.lang["main_menu"]["quit"],scale=0.07,pos=(-0.35,0,-0.58),text_bg=(1,1,1,0.8),
-            relief=None,text_font=self.app.arcFont,text_align=TextNode.ALeft,command=self.valid_main_menu)
-        quit_btn._DirectGuiBase__componentInfo["text2"][0].setFg((0.04,0.3,0.8,1))
-        quit_btn.reparentTo(main_frame); quit_btn["state"] = DGG.DISABLED; self.lst_gui.append(quit_btn)
+        campaign_btn = arcButton(self.app.lang["main_menu"]["campaign"],(-0.15,0,-0.2),self.valid_main_menu,scale=0.12)
+        campaign_btn.reparentTo(main_frame); campaign_btn["state"] = DGG.DISABLED; self.lst_gui["main_frame"].append(campaign_btn)
+        mission_btn = arcButton(self.app.lang["main_menu"]["mission"],(-0.19,0,-0.34),self.valid_main_menu,scale=0.1)
+        mission_btn.reparentTo(main_frame); mission_btn["state"] = DGG.DISABLED; self.lst_gui["main_frame"].append(mission_btn)
+        options_btn = arcButton(self.app.lang["main_menu"]["options"],(-0.26,0,-0.47),self.valid_main_menu,scale=0.09)
+        options_btn.reparentTo(main_frame); options_btn["state"] = DGG.DISABLED; self.lst_gui["main_frame"].append(options_btn)
+        quit_btn = arcButton(self.app.lang["main_menu"]["quit"],(-0.35,0,-0.58),self.valid_main_menu,scale=0.07)
+        quit_btn.reparentTo(main_frame); quit_btn["state"] = DGG.DISABLED; self.lst_gui["main_frame"].append(quit_btn)
         #GUI : aux_menu -> campaign
-        camp_stitre = DirectLabel(text=self.app.lang["camp_menu"]["stitre"],scale=0.13,pos=(-1,0,0.7),text_bg=(1,1,1,0.8),
-            relief=None,text_font=self.app.arcFont,text_align=TextNode.ALeft)
-        camp_stitre.reparentTo(camp_frame)
-        #
+        camp_stitre = arcLabel(self.app.lang["camp_menu"]["stitre"],(-1,0,0.7),0.13)
+        camp_stitre.reparentTo(camp_frame); self.lst_gui["camp_frame"].append(camp_stitre)
         #
         #TODO
         #
+        #LABEL "CREATE"
+        camp_create_lab = arcLabel(self.app.lang["camp_menu"]["new_unit"],(-1,0,0.5))
+        camp_create_lab.reparentTo(camp_frame); self.lst_gui["camp_frame"].append(camp_create_lab)
         #
-        #camp_start = DirectButton(text=self.app.lang["camp_menu"])
+        #ENTRY
+        """
+        camp_entry = DirectEntry(text="",scale=0.08,numLines=1,entryFont=self.app.arcFont)
         #
-        #text2 : over
-        #text3 : disabled
+        camp_entry.reparentTo(camp_frame)
+        """
         #
-        #camp_start.reparentTo(camp_frame)
+        #BUTTON "CREATE"
+        """
+        camp_create = DirectButton(text=self.app.lang["camp_menu"]["crea_unit"],scale=0.08,pos=(-0.3,0,0),text_bg=(1,1,1,0.8),
+            relief=None,text_font=self.app.arcFont,text_align=TextNode.ALeft)
         #
-        camp_cancel = DirectButton(text=self.app.lang["aux_menu"]["return_btn"],scale=0.08,pos=(-1.1,0,0.54),text_bg=(1,1,1,0.8),
-            relief=None,text_font=self.app.arcFont,text_align=TextNode.ALeft,command=self.aux_quitmenu)
-        camp_cancel._DirectGuiBase__componentInfo["text2"][0].setFg((0.04,0.3,0.8,1))
-        camp_cancel.reparentTo(camp_frame); self.lst_gui.append(camp_cancel)
+        camp_create._DirectGuiBase__componentInfo["text2"][0].setFg((0.04,0.3,0.8,1))
+        #
+        camp_create.reparentTo(camp_frame); self.lst_gui.append(camp_create)
+        """
+        #
+        #
+        #LABEL "SELECT"
+        """
+        camp_select_lab = DirectLabel(text=self.app.lang["camp_menu"]["sel_lab"],scale=0.08,pos=(0.2,0,0.5),text_bg=(1,1,1,0.8),
+            relief=None,text_font=self.app.arcFont,text_align=TextNode.ALeft)
+        camp_select_lab.reparentTo(camp_frame); self.lst_gui.append(camp_select_lab)
+        """
+        #
+        #BUTTON "PLAY"
+        """
+        camp_play = DirectButton(text=self.app.lang["camp_menu"]["launch"],scale=0.08,pos=(0,0,-0.1),text_bg=(1,1,1,0.8),
+            relief=None,text_font=self.app.arcFont,text_align=TextNode.ALeft)
+        #
+        camp_play._DirectGuiBase__componentInfo["text2"][0].setFg((0.04,0.3,0.8,1))
+        #
+        #TODO : add command
+        #
+        camp_play.reparentTo(camp_frame); self.lst_gui.append(camp_play)
+        """
+        #
+        #BUTTON "REMOVE"
+        """
+        camp_remove = DirectButton(text=self.app.lang["camp_menu"]["supp_unit"],scale=0.08,pos=(0,0,-4),text_bg=(1,1,1,0.8),
+            relief=None,text_font=self.app.arcFont,text_align=TextNode.ALeft)
+        #
+        camp_remove._DirectGuiBase__componentInfo["text2"][0].setFg((0.04,0.3,0.8,1))
+        #
+        #TODO : add command
+        #
+        camp_remove.reparentTo(camp_frame); self.lst_gui.append(camp_remove)
+        """
+        #
+        #
+        #LABEL "NO SAVE"
+        camp_nosave = arcLabel(self.app.lang["camp_menu"]["no_unit"],(0,0,0),txtalgn=TextNode.ACenter)
+        #
+        #TODO : verify label position
+        #
+        #camp_nosave.hide();
+        camp_nosave.reparentTo(camp_frame); self.lst_gui["camp_frame"].append(camp_nosave)
+        #
+        #
+        camp_cancel = arcButton(self.app.lang["aux_menu"]["return_btn"],(-1,0,-0.7),self.aux_quitmenu)
+        camp_cancel.reparentTo(camp_frame); self.lst_gui["camp_frame"].append(camp_cancel)
         #GUI : aux_menu -> missions
-        mission_stitre = DirectLabel(text=self.app.lang["mission_menu"]["stitre"],scale=0.13,pos=(-1,0,0.7),text_bg=(1,1,1,0.8),
-            relief=None,text_font=self.app.arcFont,text_align=TextNode.ALeft)
-        mission_stitre.reparentTo(mission_frame)
-        #
-        #TODO
+        mission_stitre = arcLabel(self.app.lang["mission_menu"]["stitre"],(-1,0,0.7),0.13)
+        mission_stitre.reparentTo(mission_frame); self.lst_gui["mission_frame"].append(mission_stitre)
         #
         #
+        #TODO : all the mission form is missing
         #
-        mission_cancel = DirectButton(text=self.app.lang["aux_menu"]["return_btn"],scale=0.09,pos=(-1.1,0,0.54),text_bg=(1,1,1,0.8),
-            relief=None,text_font=self.app.arcFont,text_align=TextNode.ALeft,command=self.aux_quitmenu)
-        mission_cancel._DirectGuiBase__componentInfo["text2"][0].setFg((0.04,0.3,0.8,1))
-        mission_cancel.reparentTo(mission_frame); self.lst_gui.append(mission_cancel)
+        #
+        mission_cancel = arcButton(self.app.lang["aux_menu"]["return_btn"],(-1,0,-0.7),self.aux_quitmenu)
+        mission_cancel.reparentTo(mission_frame); self.lst_gui["mission_frame"].append(mission_cancel)
         #GUI : aux_menu -> options
-        option_stitre = DirectLabel(text=self.app.lang["option_menu"]["stitre"],scale=0.13,pos=(-1,0,0.7),text_bg=(1,1,1,0.8),
-            relief=None,text_font=self.app.arcFont,text_align=TextNode.ALeft)
-        option_stitre.reparentTo(option_frame)
+        option_stitre = arcLabel(self.app.lang["option_menu"]["stitre"],(-1,0,0.7),0.13)
+        option_stitre.reparentTo(option_frame); self.lst_gui["option_frame"].append(option_stitre)
+        #
+        #TODO : add others options
         self.opt_var = [[self.app.main_config["fullscreen"]]]
-        opt_mode = [
-            DirectRadioButton(text=self.app.lang["option_menu"]["windowed"],variable=self.opt_var[0],value=[False],
-                text_align=TextNode.ALeft,scale=0.08,pos=(-1.1,0,0.4),text_font=self.app.arcFont,text_bg=(1,1,1,0.8),
-                relief=None,command=self.opt_change,extraArgs=[0]),
-            DirectRadioButton(text=self.app.lang["option_menu"]["fullscreen"],variable=self.opt_var[0],value=[True],
-                text_align=TextNode.ALeft,scale=0.08,pos=(-1.1,0,0.3),text_font=self.app.arcFont,text_bg=(1,1,1,0.8),
-                relief=None,command=self.opt_change,extraArgs=[0])]
-        for opt_mode_btn in opt_mode:
-            opt_mode_btn.setOthers(opt_mode); opt_mode_btn.reparentTo(option_frame); self.lst_gui.append(opt_mode_btn)
         #
         #
-        #TODO
+        lst_rad = [[self.app.lang["option_menu"]["windowed"],self.opt_var[0],[False],self.opt_change,[0],(-1.1,0,0.4)],
+            [self.app.lang["option_menu"]["fullscreen"],self.opt_var[0],[True],self.opt_change,[0],(-1.1,0,0.3)]]
+        arcRadioButton(lst_rad,option_frame,self.lst_gui["option_frame"])
         #
         #
-        #
-        opt_chx_res = ""
-        #
-        #
-        #
-        #opt_valid = DirectButton(text=self.app.lang["option_menu"][""]
-        #
-        opt_reset = ""
-        #
-        opt_default = ""
+        opt_chx_res_lab = arcLabel(self.app.lang["option_menu"]["res_chx"],(-1.1,0,0))
+        opt_chx_res_lab.reparentTo(option_frame); self.lst_gui["option_frame"].append(opt_chx_res_lab)
         #
         #
-        option_cancel = DirectButton(text=self.app.lang["aux_menu"]["return_btn"],scale=0.09,pos=(-1.1,0,0.54),text_bg=(1,1,1,0.8),
-            relief=None,text_font=self.app.arcFont,text_align=TextNode.ALeft,command=self.aux_quitmenu)
-        option_cancel._DirectGuiBase__componentInfo["text2"][0].setFg((0.04,0.3,0.8,1))
-        option_cancel.reparentTo(option_frame); self.lst_gui.append(option_cancel)
+        #TODO : add command to switch resolution
+        #
+        lst_res = ["640x480","800x600","1024x768","1152x864","1280x960","1280x1024","1440x900"]
+        act_res = str(self.app.main_config["size"][0])+"x"+str(self.app.main_config["size"][1])
+        act_item = 0
+        for it,elt in enumerate(lst_res):
+            if elt == act_res:
+                act_item = it
+                break
+        opt_chx_res = arcOptMenu(act_res,(-0.4,0,0),lst_res,init=act_item,cmd=None); opt_chx_res.reparentTo(option_frame)
+        #
+        #
+        #TODO : command and text over
+        #
+        opt_chx_res.reparentTo(option_frame)
+        opt_chx_lang_lab = arcLabel(self.app.lang["option_menu"]["lang_chx"],(-1.1,0,-0.2))
+        opt_chx_lang_lab.reparentTo(option_frame); self.lst_gui["option_frame"].append(opt_chx_lang_lab)
+        #
+        #TODO : add command to switch language & text over
+        #
+        lst_lang = []
+        for elt in self.app.main_config["lang"]: lst_lang.append(elt[1])
+        opt_chx_lang = arcOptMenu(self.app.main_config["lang"][self.app.main_config["lang_chx"]][1],(-0.4,0,-0.2),lst_lang,
+            init=self.app.main_config["lang_chx"],cmd=None); opt_chx_lang.reparentTo(option_frame)
+        #
+        #TODO : validation, reset and cancel buttons
+        #
+        #
+        opt_valid = arcButton(self.app.lang["option_menu"]["btn_valid"],(0,0,0),None); opt_valid["state"] = DGG.DISABLED
+        opt_valid.reparentTo(option_frame); self.lst_gui["option_frame"].append(opt_valid)
+        #
+        #
+        opt_reset = arcButton(self.app.lang["option_menu"]["btn_reset"],(1,0,0),None); opt_reset["state"] = DGG.DISABLED
+        opt_reset.reparentTo(option_frame); self.lst_gui["option_frame"].append(opt_reset)
+        #
+        #TODO : position du bouton de retour au menu à changer
+        #
+        option_cancel = arcButton(self.app.lang["aux_menu"]["return_btn"],(-1,0,-0.7),self.aux_quitmenu)
+        option_cancel.reparentTo(option_frame); self.lst_gui["option_frame"].append(option_cancel)
+        #
+        #
         #delayed tasks
         taskMgr.doMethodLater(6.5,self.main_start_task,"main start task")
         taskMgr.doMethodLater(9,self.main_stmm_task,"main start main menu task")
@@ -188,13 +280,10 @@ class mainScene:
         self.arc_main_menu.play("load")
         return task.done
     def main_affmm_task(self,task):
-        self.app.change_cursor(1); self.lst_gui[0].show(); self.lst_gui[self.lst_menus[1]+4]["state"] = DGG.NORMAL
-        #
-        #TODO : test sur lst_menus[1]
-        #
-        self.app.lst_arrows[0]["node"].show()
-        #
-        #
+        self.app.change_cursor(1); self.lst_gui["frames"][0].show()
+        self.lst_gui["main_frame"][self.lst_menus[1]]["state"] = DGG.NORMAL
+        if self.lst_menus[1] > 0: self.app.lst_arrows[1]["node"].show()
+        if self.lst_menus[1] < 3: self.app.lst_arrows[0]["node"].show()
         self.app.lst_arrows[0]["status"] = 1; self.app.lst_arrows[1]["status"] = 1
         #capture de la souris
         self.app.accept("mouse1",self.main_m_menu_state_change,[2])
@@ -238,7 +327,7 @@ class mainScene:
             else: return
         pos_texts = [(-0.35,0,0.23),(-0.26,0,0.1),(-0.19,0,-0.04),(-0.15,0,-0.2),(-0.19,0,-0.34),(-0.26,0,-0.47),(-0.35,0,-0.58)]
         scale_texts = [0.07,0.09,0.1,0.12,0.1,0.09,0.07]
-        self.lst_gui[self.lst_menus[1]+4]["state"] = DGG.DISABLED
+        self.lst_gui["main_frame"][self.lst_menus[1]]["state"] = DGG.DISABLED
         if sens == 0 and self.lst_menus[1] < 3:
             if self.lst_menus[1] == 0: self.app.lst_arrows[1]["node"].show()
             if self.lst_menus[1] == 2: self.app.lst_arrows[0]["node"].hide()
@@ -248,17 +337,13 @@ class mainScene:
             if self.lst_menus[1] == 3: self.app.lst_arrows[0]["node"].show()
             self.arc_main_menu.play("state_"+str(self.lst_menus[1])+"_"+str(self.lst_menus[1]-1)); self.lst_menus[1] -= 1
         movePara = Parallel(name="texts_move")
-        for it in range(4,8):
-            movePara.append(self.lst_gui[it].posInterval(0.5,Point3(pos_texts[3-self.lst_menus[1]+it-4])))
-            movePara.append(self.lst_gui[it].scaleInterval(0.5,scale_texts[3-self.lst_menus[1]+it-4]))
-        movePara.start(); self.lst_gui[self.lst_menus[1]+4]["state"] = DGG.NORMAL
+        for it in range(4):
+            movePara.append(self.lst_gui["main_frame"][it].posInterval(0.5,Point3(pos_texts[3-self.lst_menus[1]+it])))
+            movePara.append(self.lst_gui["main_frame"][it].scaleInterval(0.5,scale_texts[3-self.lst_menus[1]+it]))
+        movePara.start(); self.lst_gui["main_frame"][self.lst_menus[1]]["state"] = DGG.NORMAL
     def valid_main_menu(self):
-        #
-        #TODO : remplacer cursorhidden par nouvelle souris
-        #
-        #
-        #
-        self.app.ignore("mouse1"); self.app.ignore("wheel_up"); self.app.ignore("wheel_down")
+        self.app.change_cursor(0); taskMgr.doMethodLater(1,self.main_aux_arcs_task,"anim aux arcs task")
+        self.app.ignore("escape"); self.app.ignore("mouse1"); self.app.ignore("wheel_up"); self.app.ignore("wheel_down")
         self.app.ignore("arrow_up"); self.app.ignore("arrow_down"); self.app.ignore("enter")
         self.app.lst_arrows[0]["status"] = 1; self.app.lst_arrows[1]["status"] = 1
         if self.lst_menus[1] == 0 or self.lst_menus[1] == 1:
@@ -283,28 +368,35 @@ class mainScene:
             #
             pass
         elif self.lst_menus[1] == 3: sys.exit(0)
-        self.app.lst_arrows[0]["node"].hide(); self.app.lst_arrows[1]["node"].hide(); self.lst_gui[0].hide()
+        self.app.lst_arrows[0]["node"].hide(); self.app.lst_arrows[1]["node"].hide(); self.lst_gui["frames"][0].hide()
         movePara = Parallel(name="main_to_aux")
         movePara.append(camera.posInterval(2,Point3(-4,-1,7)))
         movePara.append(camera.hprInterval(2,Point3(-90,-10,0)))
         movePara.start()
         taskMgr.doMethodLater(2.5,self.aux_affmenu_task,"main aff aux menu task")
         self.lst_menus[0] = 1
+    def main_aux_arcs_task(self,task):
+        self.arc_aux_menu.play("load")
+        return task.done
     def aux_affmenu_task(self,task):
-        self.lst_gui[self.lst_menus[1]+1].show()
+        self.app.change_cursor(1); self.lst_gui["frames"][self.lst_menus[1]+1].show()
         #
         #TODO : re accept all the inputs
         #
-        self.app.accept("escape",self.aux_quitmenu)
-        self.app.accept("backspace",self.aux_quitmenu)
+        self.app.accept("escape",self.aux_quitmenu); self.app.accept("backspace",self.aux_quitmenu)
         #
         #
         return task.done
     def aux_quitmenu(self):
-        self.lst_gui[self.lst_menus[1]+1].hide()
+        self.app.change_cursor(0); self.lst_gui["frames"][self.lst_menus[1]+1].hide(); self.arc_aux_menu.play("unload")
         self.app.accept("escape",sys.exit,[0]); self.app.ignore("backspace")
         #
+        #
         #TODO : ignore inputs
+        #
+        #
+        #TODO : condition over campaign and missions to suppress the name (cause translation)
+        #
         #
         movePara = Parallel(name="aux_to_main")
         movePara.append(camera.posInterval(2,Point3(0,-25,12)))
@@ -343,32 +435,34 @@ class mainScene:
         #
         pass
 
-#game scene class
-class game_scene:
+class cine_scene: #cinematic scene class
     def __init__(self):
         #
         #TODO
         #
         pass
 
-#class ArcnsApp(DirectObject):
-class ArcnsApp(DirectObject):
+class game_scene: #game scene class
+    def __init__(self):
+        #
+        #TODO
+        #
+        pass
+
+
+class ArcnsApp(DirectObject): #class ArcnsApp, main class
     def __init__(self): #basic init start
         base.disableMouse(); self.wp = WindowProperties(); self.wp.setCursorHidden(True); base.win.requestProperties(self.wp)
         cm = CardMaker("cursor"); cm.setFrame(0,0.1,-0.13,0); self.cust_mouse = render.attachNewNode(cm.generate())
         self.cust_mouse_tex = []
         self.cust_mouse_tex.append(loader.loadTexture("models/cursors/blank_cursor.png"))
         self.cust_mouse_tex.append(loader.loadTexture("models/cursors/main_cursor.png"))
-        #
-        #TODO : load others cursors
-        #
         self.cust_mouse.setTexture(self.cust_mouse_tex[0])
         self.cust_mouse.setTransparency(TransparencyAttrib.MAlpha)
-        self.cust_mouse.reparentTo(render2d); self.cust_mouse.setBin("fixed",100)
+        self.cust_mouse.reparentTo(render2d); self.cust_mouse.setBin("gui-popup",100)
         base.mouseWatcherNode.setGeometry(self.cust_mouse.node())
         #text and background
-        self.arcFont = base.loader.loadFont("misc/firstv2.ttf")
-        textVersion = OnscreenText(text="v0.0",font=self.arcFont,pos=(1.15,-0.95),fg=(0,0,0,1),bg=(1,1,1,0.8))
+        textVersion = OnscreenText(text="v0.0",font=arcFont,pos=(1.15,-0.95),fg=(0,0,0,1),bg=(1,1,1,0.8))
         base.setBackgroundColor(1,1,1)
         self.main_config = json.loads("".join([line.rstrip().lstrip() for line in file("misc/config.json","rb")]))
         #arrows (GENERAL)
@@ -414,5 +508,6 @@ class ArcnsApp(DirectObject):
         base.win.requestProperties(wp)
         #
 
+arcFont = base.loader.loadFont("misc/firstv2.ttf")
 app = ArcnsApp()
 run()

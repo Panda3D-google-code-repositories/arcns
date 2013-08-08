@@ -1,7 +1,7 @@
 window-title ARCNS
 clock-mode limited
 clock-frame-rate 60
-#cursor-hidden #t
+cursor-hidden #t
 win-size 640 480
 
 #for dev only

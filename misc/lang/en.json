@@ -7,7 +7,13 @@
     },
     "aux_menu":{"return_btn":"Main menu"},
     "camp_menu":{
-        "stitre":"Campaign :"
+        "stitre":"Campaign :",
+        "sel_lab":"Team choice :",
+        "new_unit":"New team :",
+        "crea_unit":"Create",
+        "supp_unit":"Remove",
+        "launch":"Play",
+        "no_unit":"No save found"
     },
     "mission_menu":{
         "stitre":"Missions :"
@@ -19,7 +25,6 @@
         "res_chx":"Resolution :",
         "lang_chx":"Language :",
         "btn_valid":"Accept",
-        "btn_reset":"Cancel",
-        "btn_default":"Reset to default"
+        "btn_reset":"Cancel"
     }
 }

@@ -7,7 +7,13 @@
     },
     "aux_menu":{"return_btn":"Menu principal"},
     "camp_menu":{
-        "stitre":"Campagne :"
+        "stitre":"Campagne :",
+        "sel_lab":"Choix de l'unité :",
+        "new_unit":"Nouvelle unité :",
+        "crea_unit":"Créer",
+        "supp_unit":"Supprimer",
+        "launch":"Jouer",
+        "no_unit":"Aucune sauvegarde"
     },
     "mission_menu":{
         "stitre":"Missions :"
@@ -19,7 +25,6 @@
         "res_chx":"Résolution :",
         "lang_chx":"Langue :",
         "btn_valid":"Valider",
-        "btn_reset":"Annuler",
-        "btn_default":"Valeur par défaut"
+        "btn_reset":"Annuler"
     }
 }
