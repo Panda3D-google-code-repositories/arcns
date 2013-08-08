@@ -2,9 +2,10 @@
 
 from panda3d.core import loadPrcFile
 
-loadPrcFile("misc/config.prc")
+loadPrcFile("config.prc")
 
 from direct.showbase.DirectObject import DirectObject
+from direct.showbase.AppRunnerGlobal import appRunner
 from direct.task import Task
 from direct.actor.Actor import Actor
 from direct.interval.IntervalGlobal import Sequence, Parallel
@@ -20,7 +21,7 @@ from panda3d.core import Geom, GeomNode, GeomVertexData, GeomVertexFormat, GeomV
 from pandac.PandaModules import TransparencyAttrib
 
 import direct.directbase.DirectStart
-import math, sys, json
+import math, os, sys, json
 
 """
 override functions
@@ -36,10 +37,10 @@ def arcLabel(txt,pos,scale=0.08,txtalgn=TextNode.ALeft): #override label
     ndp = DirectLabel(text=txt,scale=scale,pos=pos,text_bg=(1,1,1,0.8),relief=None,text_font=arcFont,text_align=txtalgn)
     return ndp
 
-def arcOptMenu(txt,pos,items,init=0,cmd=None,scale=0.08,change=1,txtalgn=TextNode.ALeft):
+def arcOptMenu(txt,pos,items,init=0,cmd=None,scale=0.08,change=1,txtalgn=TextNode.ALeft,extraArgs=[]):
     ndp = DirectOptionMenu(text=txt,scale=scale,pos=pos,items=items,initialitem=init,textMayChange=change,text_font=arcFont,
         text_align=txtalgn,text_bg=(1,1,1,0.8),relief=None,highlightColor=(0.03,0.3,0.8,1),popupMarker_relief=None,
-        popupMarker_pos=(0,0,0),popupMarkerBorder=(0,0),item_text_font=arcFont)
+        popupMarker_pos=(0,0,0),popupMarkerBorder=(0,0),item_text_font=arcFont,command=cmd,extraArgs=extraArgs)
     return ndp
 
 def arcRadioButton(lst_rad,parent,gui,scale=0.08,txtalgn=TextNode.ALeft): #override radio button
@@ -129,10 +130,6 @@ class mainScene: #main scene class
         #GUI : aux_menu -> campaign
         camp_stitre = arcLabel(self.app.lang["camp_menu"]["stitre"],(-1,0,0.7),0.13)
         camp_stitre.reparentTo(camp_frame); self.lst_gui["camp_frame"].append(camp_stitre)
-        #
-        #TODO
-        #
-        #LABEL "CREATE"
         camp_create_lab = arcLabel(self.app.lang["camp_menu"]["new_unit"],(-1,0,0.5))
         camp_create_lab.reparentTo(camp_frame); self.lst_gui["camp_frame"].append(camp_create_lab)
         #
@@ -144,46 +141,24 @@ class mainScene: #main scene class
         """
         #
         #BUTTON "CREATE"
-        """
-        camp_create = DirectButton(text=self.app.lang["camp_menu"]["crea_unit"],scale=0.08,pos=(-0.3,0,0),text_bg=(1,1,1,0.8),
-            relief=None,text_font=self.app.arcFont,text_align=TextNode.ALeft)
+        camp_create = arcButton(self.app.lang["camp_menu"]["crea_unit"],(-0.3,0,0),self.crea_unit)
         #
-        camp_create._DirectGuiBase__componentInfo["text2"][0].setFg((0.04,0.3,0.8,1))
-        #
-        camp_create.reparentTo(camp_frame); self.lst_gui.append(camp_create)
-        """
+        camp_create.reparentTo(camp_frame); self.lst_gui["camp_frame"].append(camp_create)
         #
         #
         #LABEL "SELECT"
-        """
-        camp_select_lab = DirectLabel(text=self.app.lang["camp_menu"]["sel_lab"],scale=0.08,pos=(0.2,0,0.5),text_bg=(1,1,1,0.8),
-            relief=None,text_font=self.app.arcFont,text_align=TextNode.ALeft)
-        camp_select_lab.reparentTo(camp_frame); self.lst_gui.append(camp_select_lab)
-        """
-        #
+        camp_select_lab = arcLabel(self.app.lang["camp_menu"]["sel_lab"],(0.2,0,0.5))
+        camp_select_lab.reparentTo(camp_frame); self.lst_gui["camp_frame"].append(camp_select_lab)
         #BUTTON "PLAY"
-        """
-        camp_play = DirectButton(text=self.app.lang["camp_menu"]["launch"],scale=0.08,pos=(0,0,-0.1),text_bg=(1,1,1,0.8),
-            relief=None,text_font=self.app.arcFont,text_align=TextNode.ALeft)
+        camp_play = arcButton(self.app.lang["camp_menu"]["launch"],(0,0,-0.1),self.valid_aux_menu)
         #
-        camp_play._DirectGuiBase__componentInfo["text2"][0].setFg((0.04,0.3,0.8,1))
+        camp_play.reparentTo(camp_frame); self.lst_gui["camp_frame"].append(camp_play)
         #
-        #TODO : add command
-        #
-        camp_play.reparentTo(camp_frame); self.lst_gui.append(camp_play)
-        """
         #
         #BUTTON "REMOVE"
-        """
-        camp_remove = DirectButton(text=self.app.lang["camp_menu"]["supp_unit"],scale=0.08,pos=(0,0,-4),text_bg=(1,1,1,0.8),
-            relief=None,text_font=self.app.arcFont,text_align=TextNode.ALeft)
+        camp_remove = arcButton(self.app.lang["camp_menu"]["supp_unit"],(0,0,-0.4),self.supp_unit)
         #
-        camp_remove._DirectGuiBase__componentInfo["text2"][0].setFg((0.04,0.3,0.8,1))
-        #
-        #TODO : add command
-        #
-        camp_remove.reparentTo(camp_frame); self.lst_gui.append(camp_remove)
-        """
+        camp_remove.reparentTo(camp_frame); self.lst_gui["camp_frame"].append(camp_remove)
         #
         #
         #LABEL "NO SAVE"
@@ -210,61 +185,31 @@ class mainScene: #main scene class
         #GUI : aux_menu -> options
         option_stitre = arcLabel(self.app.lang["option_menu"]["stitre"],(-1,0,0.7),0.13)
         option_stitre.reparentTo(option_frame); self.lst_gui["option_frame"].append(option_stitre)
-        #
-        #TODO : add others options
-        self.opt_var = [[self.app.main_config["fullscreen"]]]
-        #
-        #
-        lst_rad = [[self.app.lang["option_menu"]["windowed"],self.opt_var[0],[False],self.opt_change,[0],(-1.1,0,0.4)],
-            [self.app.lang["option_menu"]["fullscreen"],self.opt_var[0],[True],self.opt_change,[0],(-1.1,0,0.3)]]
+        self.opt_var = {"chg":[False,False,False],"fullscreen":[self.app.main_config["fullscreen"]],
+            "size_chx":self.app.main_config["size_chx"],"lang_chx":self.app.main_config["lang_chx"]}
+        lst_rad = [[self.app.lang["option_menu"]["windowed"],self.opt_var["fullscreen"],[False],self.opt_change,[0],(-1.1,0,0.4)],
+            [self.app.lang["option_menu"]["fullscreen"],self.opt_var["fullscreen"],[True],self.opt_change,[0],(-1.1,0,0.3)]]
         arcRadioButton(lst_rad,option_frame,self.lst_gui["option_frame"])
-        #
-        #
+        self.lst_gui["option_frame"][1]["indicatorValue"] = (0 if self.opt_var["fullscreen"][0] else 1)
+        self.lst_gui["option_frame"][2]["indicatorValue"] = (1 if self.opt_var["fullscreen"][0] else 0)
         opt_chx_res_lab = arcLabel(self.app.lang["option_menu"]["res_chx"],(-1.1,0,0))
         opt_chx_res_lab.reparentTo(option_frame); self.lst_gui["option_frame"].append(opt_chx_res_lab)
-        #
-        #
-        #TODO : add command to switch resolution
-        #
-        lst_res = ["640x480","800x600","1024x768","1152x864","1280x960","1280x1024","1440x900"]
-        act_res = str(self.app.main_config["size"][0])+"x"+str(self.app.main_config["size"][1])
-        act_item = 0
-        for it,elt in enumerate(lst_res):
-            if elt == act_res:
-                act_item = it
-                break
-        opt_chx_res = arcOptMenu(act_res,(-0.4,0,0),lst_res,init=act_item,cmd=None); opt_chx_res.reparentTo(option_frame)
-        #
-        #
-        #TODO : command and text over
-        #
-        opt_chx_res.reparentTo(option_frame)
+        opt_chx_res = arcOptMenu(self.app.main_config["size"][self.app.main_config["size_chx"]],(-0.4,0,0),self.app.main_config["size"],
+            init=self.app.main_config["size_chx"],cmd=self.opt_change,extraArgs=[1])
+        opt_chx_res.reparentTo(option_frame); self.lst_gui["option_frame"].append(opt_chx_res)
         opt_chx_lang_lab = arcLabel(self.app.lang["option_menu"]["lang_chx"],(-1.1,0,-0.2))
         opt_chx_lang_lab.reparentTo(option_frame); self.lst_gui["option_frame"].append(opt_chx_lang_lab)
-        #
-        #TODO : add command to switch language & text over
-        #
         lst_lang = []
         for elt in self.app.main_config["lang"]: lst_lang.append(elt[1])
         opt_chx_lang = arcOptMenu(self.app.main_config["lang"][self.app.main_config["lang_chx"]][1],(-0.4,0,-0.2),lst_lang,
-            init=self.app.main_config["lang_chx"],cmd=None); opt_chx_lang.reparentTo(option_frame)
-        #
-        #TODO : validation, reset and cancel buttons
-        #
-        #
-        opt_valid = arcButton(self.app.lang["option_menu"]["btn_valid"],(0,0,0),None); opt_valid["state"] = DGG.DISABLED
+            init=self.app.main_config["lang_chx"],cmd=self.opt_change,extraArgs=[2])
+        opt_chx_lang.reparentTo(option_frame); self.lst_gui["option_frame"].append(opt_chx_lang)
+        opt_valid = arcButton(self.app.lang["option_menu"]["btn_valid"],(0,0,-0.7),self.opt_action,extraArgs=[0]); opt_valid["state"] = DGG.DISABLED
         opt_valid.reparentTo(option_frame); self.lst_gui["option_frame"].append(opt_valid)
-        #
-        #
-        opt_reset = arcButton(self.app.lang["option_menu"]["btn_reset"],(1,0,0),None); opt_reset["state"] = DGG.DISABLED
+        opt_reset = arcButton(self.app.lang["option_menu"]["btn_reset"],(0.4,0,-0.7),self.opt_action,extraArgs=[1]); opt_reset["state"] = DGG.DISABLED
         opt_reset.reparentTo(option_frame); self.lst_gui["option_frame"].append(opt_reset)
-        #
-        #TODO : position du bouton de retour au menu à changer
-        #
         option_cancel = arcButton(self.app.lang["aux_menu"]["return_btn"],(-1,0,-0.7),self.aux_quitmenu)
         option_cancel.reparentTo(option_frame); self.lst_gui["option_frame"].append(option_cancel)
-        #
-        #
         #delayed tasks
         taskMgr.doMethodLater(6.5,self.main_start_task,"main start task")
         taskMgr.doMethodLater(9,self.main_stmm_task,"main start main menu task")
@@ -362,11 +307,6 @@ class mainScene: #main scene class
             #
             #
             pass
-        elif self.lst_menus[1] == 2:
-            #
-            #TODO : reset all last config unvalid
-            #
-            pass
         elif self.lst_menus[1] == 3: sys.exit(0)
         self.app.lst_arrows[0]["node"].hide(); self.app.lst_arrows[1]["node"].hide(); self.lst_gui["frames"][0].hide()
         movePara = Parallel(name="main_to_aux")
@@ -380,16 +320,26 @@ class mainScene: #main scene class
         return task.done
     def aux_affmenu_task(self,task):
         self.app.change_cursor(1); self.lst_gui["frames"][self.lst_menus[1]+1].show()
-        #
-        #TODO : re accept all the inputs
-        #
         self.app.accept("escape",self.aux_quitmenu); self.app.accept("backspace",self.aux_quitmenu)
-        #
-        #
+        if self.lst_menus[1] == 0:
+            #
+            #TODO
+            #
+            pass
+        elif self.lst_menus[1] == 1:
+            #
+            #TODO
+            #
+            pass
+        elif self.lst_menus[1] == 2:
+            #
+            #TODO
+            #
+            self.app.accept("enter",self.opt_action,[0])
         return task.done
     def aux_quitmenu(self):
         self.app.change_cursor(0); self.lst_gui["frames"][self.lst_menus[1]+1].hide(); self.arc_aux_menu.play("unload")
-        self.app.accept("escape",sys.exit,[0]); self.app.ignore("backspace")
+        self.app.accept("escape",sys.exit,[0]); self.app.ignore("backspace"); self.app.ignore("enter")
         #
         #
         #TODO : ignore inputs
@@ -409,14 +359,78 @@ class mainScene: #main scene class
         #
         #
         pass
-    def opt_change(self,chx):
+    def crea_unit(self):
         #
-        #
-        print "options change"
-        #
-        print chx
+        #TODO
         #
         pass
+    def supp_unit(self):
+        #
+        #TODO
+        #
+        pass
+    def opt_change(self,val,chx=0):
+        if chx == 0 and val == 0: self.opt_var["chg"][0] = (False if self.opt_var["fullscreen"][0] == self.app.main_config["fullscreen"] else True)
+        elif chx == 1:
+            idx = self.app.main_config["size"].index(val)
+            self.opt_var["chg"][1] = (False if self.app.main_config["size_chx"] == idx else True)
+            self.opt_var["size_chx"] = idx
+        elif chx == 2:
+            idx = [i for i,x in enumerate(self.app.main_config["lang"]) if x[1] == val][0]
+            self.opt_var["chg"][2] = (False if self.app.main_config["lang_chx"] == idx else True)
+            self.opt_var["lang_chx"] = idx
+        disab = DGG.DISABLED
+        for elt in self.opt_var["chg"]:
+            if elt == True:
+                disab = DGG.NORMAL
+                break
+        if len(self.lst_gui["option_frame"]) == 10:
+            self.lst_gui["option_frame"][-3]["state"] = disab
+            self.lst_gui["option_frame"][-2]["state"] = disab
+    def opt_action(self,act):
+        self.lst_gui["option_frame"][-3]["state"] = DGG.DISABLED
+        self.lst_gui["option_frame"][-2]["state"] = DGG.DISABLED
+        if self.opt_var["chg"][0]:
+            if act == 0: self.app.main_config["fullscreen"] = self.opt_var["fullscreen"][0]
+            elif act == 1:
+                self.opt_var["fullscreen"][0] = self.app.main_config["fullscreen"]
+                self.lst_gui["option_frame"][1]["indicatorValue"] = (0 if self.opt_var["fullscreen"][0] else 1)
+                self.lst_gui["option_frame"][2]["indicatorValue"] = (1 if self.opt_var["fullscreen"][0] else 0)
+        if self.opt_var["chg"][1]:
+            if act == 0: self.app.main_config["size_chx"] = self.opt_var["size_chx"]
+            elif act == 1:
+                self.opt_var["size_chx"] = self.app.main_config["size_chx"]
+                self.lst_gui["option_frame"][4].set(self.opt_var["size_chx"])
+        if self.opt_var["chg"][2]:
+            if act == 0:
+                self.app.main_config["lang_chx"] = self.opt_var["lang_chx"]
+                self.app.langtab = self.app.main_config["lang"][self.app.main_config["lang_chx"]]
+                self.app.lang = json.loads("".join([line.rstrip().lstrip() for line in file("misc/lang/"+self.app.langtab[0]+".json","rb")]))
+                self.lst_gui["main_frame"][0]["text"] = self.app.lang["main_menu"]["campaign"]
+                self.lst_gui["main_frame"][1]["text"] = self.app.lang["main_menu"]["mission"]
+                self.lst_gui["main_frame"][2]["text"] = self.app.lang["main_menu"]["options"]
+                self.lst_gui["main_frame"][3]["text"] = self.app.lang["main_menu"]["quit"]
+                #
+                #TODO
+                #
+                #self.lst_gui["camp_frame"][0]["text"] = #
+                #
+                #self.lst_gui["mission_frame"][0]["text"] = #
+                #
+                self.lst_gui["option_frame"][0]["text"] = self.app.lang["option_menu"]["stitre"]
+                self.lst_gui["option_frame"][1]["text"] = self.app.lang["option_menu"]["windowed"]
+                self.lst_gui["option_frame"][2]["text"] = self.app.lang["option_menu"]["fullscreen"]
+                self.lst_gui["option_frame"][3]["text"] = self.app.lang["option_menu"]["res_chx"]
+                self.lst_gui["option_frame"][5]["text"] = self.app.lang["option_menu"]["lang_chx"]
+                self.lst_gui["option_frame"][7]["text"] = self.app.lang["option_menu"]["btn_valid"]
+                self.lst_gui["option_frame"][8]["text"] = self.app.lang["option_menu"]["btn_reset"]
+                self.lst_gui["option_frame"][9]["text"] = self.app.lang["aux_menu"]["return_btn"]
+            elif act == 1:
+                self.opt_var["lang_chx"] = self.app.main_config["lang_chx"]
+                self.lst_gui["option_frame"][6].set(self.opt_var["lang_chx"])
+        if act == 0 and not self.opt_var["chg"] == [False,False,False]:
+            conf = open(self.app.curdir+"/config.json","w"); conf.write(json.dumps(self.app.main_config)); conf.close()
+        if not self.opt_var["chg"] == [False,False,False]: self.opt_var["chg"] = [False,False,False]
     def close_main_scene(self):
         #
         #TODO
@@ -464,7 +478,8 @@ class ArcnsApp(DirectObject): #class ArcnsApp, main class
         #text and background
         textVersion = OnscreenText(text="v0.0",font=arcFont,pos=(1.15,-0.95),fg=(0,0,0,1),bg=(1,1,1,0.8))
         base.setBackgroundColor(1,1,1)
-        self.main_config = json.loads("".join([line.rstrip().lstrip() for line in file("misc/config.json","rb")]))
+        self.curdir = (appRunner.p3dFilename.getDirname() if appRunner else "..")
+        self.main_config = json.loads("".join([line.rstrip().lstrip() for line in file(self.curdir+"/config.json","rb")]))
         #arrows (GENERAL)
         self.arrow = loader.loadModel("models/static/arrow"); self.lst_arrows = []
         self.c_arr = CardMaker("arrow_hide"); self.c_arr.setFrame(-1,1,-0.8,0.6)
