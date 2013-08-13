@@ -23,6 +23,8 @@ from pandac.PandaModules import TransparencyAttrib
 import direct.directbase.DirectStart
 import math, os, sys, json
 
+#from direct.tkpanels.inspector import inspect
+
 """
 override functions
 """
@@ -51,6 +53,10 @@ def arcRadioButton(lst_rad,parent,gui,scale=0.08,txtalgn=TextNode.ALeft): #overr
         lst_radio.append(ndp)
     for elt in lst_radio:
         elt.setOthers(lst_radio); elt.reparentTo(parent); gui.append(elt)
+
+def arcEntry(pos,txt="",cmd=None,scale=0.08,nlines=1): #override entry
+    ndp = DirectEntry(pos=pos,text=txt,command=cmd,scale=scale,numLines=nlines,entryFont=arcFont,frameColor=(1,1,1,0.8),relief=DGG.RIDGE)
+    return ndp
 
 """
 scenes classes
@@ -95,7 +101,23 @@ class mainScene: #main scene class
         sqp_dn.node().setTag("arrow","dn"); sqp_dn.reparentTo(self.app.pickly_node); sqp_dn.setPos(4.5,1.5,5.2)
         #arrows for campaign menu
         #
-        #TODO : arrows up/down for save selection
+        arr_camp_up = render.attachNewNode("arr-camp-up"); arr_camp_up.setScale(0.5); arr_camp_up.setHpr(-90,90,0); arr_camp_up.setPos(8,-2.5,7)
+        arr_camp_up.hide(); self.app.arrow.instanceTo(arr_camp_up); arr_camp_up.reparentTo(render)
+        self.app.lst_arrows.append({"name":"arr_camp_up","status":0,"node":arr_camp_up,"posn":[8,-2.5,7],"posh":[8.1,-2.5,7.1]})
+        #
+        sqp_c_up = render.attachNewNode(self.app.c_arr.generate()); sqp_c_up.hide(); sqp_c_up.node().setIntoCollideMask(BitMask32.bit(1))
+        sqp_c_up.node().setTag("arrow_c","up"); sqp_c_up.reparentTo(self.app.pickly_node)
+        sqp_c_up.setScale(0.5); sqp_c_up.setHpr(-90,0,0); sqp_c_up.setPos(8,-2.5,7)
+        #
+        #
+        arr_camp_dn = render.attachNewNode("arr-camp-dn"); arr_camp_dn.setScale(0.5); arr_camp_dn.setHpr(90,-90,0); arr_camp_dn.setPos(8,-2.5,2)
+        arr_camp_dn.hide(); self.app.arrow.instanceTo(arr_camp_dn); arr_camp_up.reparentTo(render)
+        self.app.lst_arrows.append({"name":"arr_camp_dn","status":0,"node":arr_camp_dn,"posn":[8,-2.5,2],"posh":[8.1,-2.5,1.9]})
+        #
+        sqp_c_dn = render.attachNewNode(self.app.c_arr.generate()); sqp_c_dn.hide(); sqp_c_dn.node().setIntoCollideMask(BitMask32.bit(1))
+        sqp_c_dn.node().setTag("arrow_c","dn"); sqp_c_dn.reparentTo(self.app.pickly_node)
+        sqp_c_dn.setScale(0.5); sqp_c_dn.setHpr(-90,0,0); sqp_c_dn.setPos(8,-2.5,2.1)
+        #
         #
         #arrows for missions menu
         #
@@ -112,7 +134,7 @@ class mainScene: #main scene class
         self.roofs = base.loader.loadModel("models/static/main_roofs"); self.roofs.reparentTo(render); self.roofs.setPos(0,0,0)
         #GUI
         self.lst_menus = [0,0,0] #0 -> which menu, 1 -> val main_menu, 2 -> val aux_menu
-        self.lst_gui = {"frames":[],"main_frame":[],"camp_frame":[],"mission_frame":[],"option_frame":[]}
+        self.lst_gui = {"frames":[],"main_frame":[],"camp_frame":[],"mission_frame":[],"option_frame":[],"saves":[]}
         #GUI : frames
         main_frame = DirectFrame(); main_frame.hide(); self.lst_gui["frames"].append(main_frame)
         camp_frame = DirectFrame(); camp_frame.hide(); self.lst_gui["frames"].append(camp_frame)
@@ -130,48 +152,27 @@ class mainScene: #main scene class
         #GUI : aux_menu -> campaign
         camp_stitre = arcLabel(self.app.lang["camp_menu"]["stitre"],(-1,0,0.7),0.13)
         camp_stitre.reparentTo(camp_frame); self.lst_gui["camp_frame"].append(camp_stitre)
-        camp_create_lab = arcLabel(self.app.lang["camp_menu"]["new_unit"],(-1,0,0.5))
+        camp_create_lab = arcLabel(self.app.lang["camp_menu"]["new_unit"],(-1.1,0,0.4))
         camp_create_lab.reparentTo(camp_frame); self.lst_gui["camp_frame"].append(camp_create_lab)
-        #
-        #ENTRY
-        """
-        camp_entry = DirectEntry(text="",scale=0.08,numLines=1,entryFont=self.app.arcFont)
-        #
-        camp_entry.reparentTo(camp_frame)
-        """
-        #
-        #BUTTON "CREATE"
-        camp_create = arcButton(self.app.lang["camp_menu"]["crea_unit"],(-0.3,0,0),self.crea_unit)
-        #
+        camp_entry = arcEntry((-1,0,0.25),cmd=self.crea_unit); camp_entry.reparentTo(camp_frame); self.lst_gui["camp_frame"].append(camp_entry)
+        camp_create = arcButton(self.app.lang["camp_menu"]["crea_unit"],(-0.3,0,0.4),self.crea_unit)
         camp_create.reparentTo(camp_frame); self.lst_gui["camp_frame"].append(camp_create)
-        #
-        #
-        #LABEL "SELECT"
-        camp_select_lab = arcLabel(self.app.lang["camp_menu"]["sel_lab"],(0.2,0,0.5))
+        camp_used = arcLabel(self.app.lang["camp_menu"]["used_name"],(-1,0,0.1))
+        camp_used.reparentTo(camp_frame); camp_used.hide(); self.lst_gui["camp_frame"].append(camp_used)
+        camp_select_lab = arcLabel(self.app.lang["camp_menu"]["sel_lab"],(0.1,0,0.4))
         camp_select_lab.reparentTo(camp_frame); self.lst_gui["camp_frame"].append(camp_select_lab)
-        #BUTTON "PLAY"
-        camp_play = arcButton(self.app.lang["camp_menu"]["launch"],(0,0,-0.1),self.valid_aux_menu)
-        #
-        camp_play.reparentTo(camp_frame); self.lst_gui["camp_frame"].append(camp_play)
-        #
-        #
-        #BUTTON "REMOVE"
-        camp_remove = arcButton(self.app.lang["camp_menu"]["supp_unit"],(0,0,-0.4),self.supp_unit)
-        #
-        camp_remove.reparentTo(camp_frame); self.lst_gui["camp_frame"].append(camp_remove)
-        #
-        #
-        #LABEL "NO SAVE"
-        camp_nosave = arcLabel(self.app.lang["camp_menu"]["no_unit"],(0,0,0),txtalgn=TextNode.ACenter)
-        #
-        #TODO : verify label position
-        #
-        #camp_nosave.hide();
-        camp_nosave.reparentTo(camp_frame); self.lst_gui["camp_frame"].append(camp_nosave)
-        #
-        #
+        camp_play = arcButton(self.app.lang["camp_menu"]["launch"],(0,0,-0.2),self.valid_aux_menu)
+        camp_play.hide(); camp_play.reparentTo(camp_frame); self.lst_gui["camp_frame"].append(camp_play)
+        camp_remove = arcButton(self.app.lang["camp_menu"]["supp_unit"],(0.3,0,-0.2),self.supp_unit)
+        camp_remove.hide(); camp_remove.reparentTo(camp_frame); self.lst_gui["camp_frame"].append(camp_remove)
+        camp_nosave = arcLabel(self.app.lang["camp_menu"]["no_unit"],(0,0,0))
+        camp_nosave.hide(); camp_nosave.reparentTo(camp_frame); self.lst_gui["camp_frame"].append(camp_nosave)
         camp_cancel = arcButton(self.app.lang["aux_menu"]["return_btn"],(-1,0,-0.7),self.aux_quitmenu)
         camp_cancel.reparentTo(camp_frame); self.lst_gui["camp_frame"].append(camp_cancel)
+        camp_time = arcLabel("",(1.25,0,0),0.07,TextNode.ARight); camp_time.hide()
+        camp_time.reparentTo(camp_frame); self.lst_gui["camp_frame"].append(camp_time)
+        camp_date = arcLabel("",(1.25,0,-0.08),0.07,TextNode.ARight); camp_date.hide()
+        camp_date.reparentTo(camp_frame); self.lst_gui["camp_frame"].append(camp_date)
         #GUI : aux_menu -> missions
         mission_stitre = arcLabel(self.app.lang["mission_menu"]["stitre"],(-1,0,0.7),0.13)
         mission_stitre.reparentTo(mission_frame); self.lst_gui["mission_frame"].append(mission_stitre)
@@ -215,7 +216,7 @@ class mainScene: #main scene class
         taskMgr.doMethodLater(9,self.main_stmm_task,"main start main menu task")
         taskMgr.doMethodLater(11,self.main_affmm_task,"main aff main menu task")
         #
-        #models (TODO)
+        #TODO : models
         #
         #
     def main_start_task(self,task):
@@ -225,7 +226,7 @@ class mainScene: #main scene class
         self.arc_main_menu.play("load")
         return task.done
     def main_affmm_task(self,task):
-        self.app.change_cursor(1); self.lst_gui["frames"][0].show()
+        self.app.change_cursor(1); self.nomove = True; self.lst_gui["frames"][0].show()
         self.lst_gui["main_frame"][self.lst_menus[1]]["state"] = DGG.NORMAL
         if self.lst_menus[1] > 0: self.app.lst_arrows[1]["node"].show()
         if self.lst_menus[1] < 3: self.app.lst_arrows[0]["node"].show()
@@ -246,19 +247,23 @@ class mainScene: #main scene class
             mpos = base.mouseWatcherNode.getMouse()
             self.app.pickerRay.setFromLens(base.camNode,mpos.getX(),mpos.getY())
             self.app.mouse_trav.traverse(self.app.pickly_node)
-            if self.app.mouse_hand.getNumEntries() > 0:
+            if self.app.mouse_hand.getNumEntries() > 0 and self.nomove:
                 if self.lst_menus[0] == 0:
                     tag = self.app.mouse_hand.getEntry(0).getIntoNode().getTag("arrow")
                     if tag == "up": nod = self.app.lst_arrows[0]
                     elif tag == "dn": nod = self.app.lst_arrows[1]
                     nod["status"] = 2; nod["node"].setPos(nod["posh"][0],nod["posh"][1],nod["posh"][2])
                 elif self.lst_menus[0] == 1:
-                    #
-                    #TODO : WAITING FOR THE AUX MENU SHOW BEFORE
-                    #
-                    #
-                    #
-                    pass
+                    if self.lst_menus[1] == 0:
+                        tag = self.app.mouse_hand.getEntry(0).getIntoNode().getTag("arrow_c")
+                        if tag == "up": nod = self.app.lst_arrows[2]
+                        elif tag == "dn": nod = self.app.lst_arrows[3]
+                        nod["status"] = 2; nod["node"].setPos(nod["posh"][0],nod["posh"][1],nod["posh"][2])
+                    elif self.lst_menus[1] == 1:
+                        #
+                        #TODO : action des arrows pour le sous menu "missions"
+                        #
+                        pass
             else:
                 for e in self.app.lst_arrows:
                     if e["status"] == 2:
@@ -287,23 +292,38 @@ class mainScene: #main scene class
             movePara.append(self.lst_gui["main_frame"][it].scaleInterval(0.5,scale_texts[3-self.lst_menus[1]+it]))
         movePara.start(); self.lst_gui["main_frame"][self.lst_menus[1]]["state"] = DGG.NORMAL
     def valid_main_menu(self):
-        self.app.change_cursor(0); taskMgr.doMethodLater(1,self.main_aux_arcs_task,"anim aux arcs task")
+        self.nomove = False; self.app.change_cursor(0); taskMgr.doMethodLater(1,self.main_aux_arcs_task,"anim aux arcs task")
         self.app.ignore("escape"); self.app.ignore("mouse1"); self.app.ignore("wheel_up"); self.app.ignore("wheel_down")
         self.app.ignore("arrow_up"); self.app.ignore("arrow_down"); self.app.ignore("enter")
-        self.app.lst_arrows[0]["status"] = 1; self.app.lst_arrows[1]["status"] = 1
+        self.app.lst_arrows[0]["status"] = 0; self.app.lst_arrows[1]["status"] = 0
+        self.app.lst_arrows[0]["node"].hide(); self.app.lst_arrows[1]["node"].hide()
+        self.nb_saves = 0; self.lst_saves = []; self.gui_saves = []
         if self.lst_menus[1] == 0 or self.lst_menus[1] == 1:
-            #
-            #TODO : liste des sauvegardes disponibles
-            #
-            pass
+            if exists(self.app.curdir+"/saves"):
+                self.lst_saves = os.listdir(self.app.curdir+"/saves"); self.nb_saves = len(self.lst_saves)
+                if self.nb_saves > 0:
+                    for it,elt in enumerate(self.lst_saves):
+                        date_save = elt[:-5].split("_"); date_save[1] = date_save[1].replace("-",":"); date_save = " ".join(date_save)
+                        cur_save = json.loads("".join([line.rstrip().lstrip() for line in file(self.app.curdir+"/saves/"+elt,"rb")]))
+                        time_txt = ""
+                        if cur_save["time"] < 100: time_txt = str(cur_save["time"])+" s"
+                        elif cur_save["time"] < 6000:
+                            s = cur_save["time"] % 60; m = (cur_save["time"]-s) / 60; time_txt = str(m)+":"+str(s)
+                        else:
+                            s = cur_save["time"] % 60; tm = (cur_save["time"]-s) / 60; m = tm%60; h = (tm-m)/60
+                            time_txt = str(h)+":"+str(m)+":"+str(s)
+                        self.gui_saves.append([cur_save["nom"],date_save,time_txt,it,None])
+            else: os.makedirs(self.app.curdir+"/saves")
         if self.lst_menus[1] == 0:
-            #
-            #TODO : remove all possible old infos
-            #
-            pass
+            if len(self.lst_gui["camp_frame"]) > 12:
+                for it in range(12,len(self.lst_gui["camp_frame"])):
+                    self.lst_gui["camp_frame"][12].removeNode(); del self.lst_gui["camp_frame"][12]
+            for elt in self.gui_saves:
+                save_lab = arcLabel(elt[0],(0,0,0)); save_lab.reparentTo(self.lst_gui["frames"][1]); save_lab.hide()
+                self.lst_gui["camp_frame"].append(save_lab); elt[4] = save_lab
         elif self.lst_menus[1] == 1:
             #
-            #TODO : reset ?
+            #TODO : action à faire lors de l'activation du sous menu "missions"
             #
             #
             pass
@@ -319,56 +339,100 @@ class mainScene: #main scene class
         self.arc_aux_menu.play("load")
         return task.done
     def aux_affmenu_task(self,task):
-        self.app.change_cursor(1); self.lst_gui["frames"][self.lst_menus[1]+1].show()
+        self.app.change_cursor(1); self.nomove = True; self.lst_gui["frames"][self.lst_menus[1]+1].show()
         self.app.accept("escape",self.aux_quitmenu); self.app.accept("backspace",self.aux_quitmenu)
         if self.lst_menus[1] == 0:
-            #
-            #TODO
-            #
-            pass
+            self.app.lst_arrows[2]["status"] = 1; self.app.lst_arrows[3]["status"] = 1
+            #capture du clavier
+            self.app.accept("arrow_up",self.move_camp_unit,[0]); self.app.accept("arrow_down",self.move_camp_unit,[1])
+            self.app.accept("enter",self.valid_aux_menu)
+            #capture de la souris
+            self.app.accept("mouse1",self.move_camp_unit,[2]); self.app.accept("wheel_up",self.move_camp_unit,[0])
+            self.app.accept("wheel_down",self.move_camp_unit,[1])
+            if self.nb_saves == 0: self.lst_gui["camp_frame"][8].show()
+            else:
+                self.lst_gui["camp_frame"][6].show(); self.lst_gui["camp_frame"][7].show()
+                self.lst_gui["camp_frame"][10]["text"] = self.gui_saves[0][2]; self.lst_gui["camp_frame"][10].show() #time
+                self.lst_gui["camp_frame"][11]["text"] = self.gui_saves[0][1]; self.lst_gui["camp_frame"][11].show() #date
+                self.gui_saves[0][4].show(); self.gui_saves[0][4].setScale(0.1)
+                if self.nb_saves > 1:
+                    self.gui_saves[1][4].show(); self.gui_saves[1][4].setScale(0.08); self.gui_saves[1][4].setPos(0.3,0,-0.5)
+                    if self.nb_saves > 2:
+                        self.gui_saves[2][4].show(); self.gui_saves[2][4].setScale(0.07); self.gui_saves[2][4].setPos(0.4,0,-0.6)
+                        if self.nb_saves > 3:
+                            self.gui_saves[3][4].show(); self.gui_saves[3][4].setScale(0.05); self.gui_saves[3][4].setPos(0.5,0,-0.68)
+                if self.nb_saves > 1: self.app.lst_arrows[2]["node"].show()
         elif self.lst_menus[1] == 1:
             #
-            #TODO
+            #TODO : création des labels et remplissage des tableaux pour le sous menu "missions"
             #
             pass
-        elif self.lst_menus[1] == 2:
-            #
-            #TODO
-            #
-            self.app.accept("enter",self.opt_action,[0])
+        elif self.lst_menus[1] == 2: self.app.accept("enter",self.opt_action,[0])
         return task.done
     def aux_quitmenu(self):
-        self.app.change_cursor(0); self.lst_gui["frames"][self.lst_menus[1]+1].hide(); self.arc_aux_menu.play("unload")
+        self.nomove = False; self.app.change_cursor(0); self.lst_gui["frames"][self.lst_menus[1]+1].hide(); self.arc_aux_menu.play("unload")
         self.app.accept("escape",sys.exit,[0]); self.app.ignore("backspace"); self.app.ignore("enter")
+        self.app.ignore("arrow_up"); self.app.ignore("arrow_down")
+        if self.lst_menus[1] == 0: #campaign
+            self.app.lst_arrows[2]["status"] = 0; self.app.lst_arrows[3]["status"] = 0
+            self.app.lst_arrows[2]["node"].hide(); self.app.lst_arrows[3]["node"].hide()
+        elif self.lst_menus[1] == 1: #missions
+            #
+            #TODO : arrows pour le sous menu "missions"
+            #
+            #
+            pass
         #
-        #
-        #TODO : ignore inputs
-        #
-        #
-        #TODO : condition over campaign and missions to suppress the name (cause translation)
-        #
-        #
-        movePara = Parallel(name="aux_to_main")
-        movePara.append(camera.posInterval(2,Point3(0,-25,12)))
-        movePara.append(camera.hprInterval(2,Point3(0,-10,0)))
-        movePara.start()
-        taskMgr.doMethodLater(2.5,self.main_affmm_task,"main aff main menu task")
-        self.lst_menus[0] = 0
+        movePara = Parallel(name="aux_to_main"); movePara.append(camera.posInterval(2,Point3(0,-25,12)))
+        movePara.append(camera.hprInterval(2,Point3(0,-10,0))); movePara.start()
+        taskMgr.doMethodLater(2.5,self.main_affmm_task,"main aff main menu task"); self.lst_menus[0] = 0
     def valid_aux_menu(self):
         #
-        #
+        #TODO : validation pour lancement d'une partie (campagne ou mission)
         #
         pass
     def crea_unit(self):
         #
-        #TODO
+        #TODO : création d'une unité, avec le fichier correspondant, et l'ajout du label
         #
         pass
     def supp_unit(self):
         #
-        #TODO
+        #TODO : suppression d'une unité, avec le fichier et les labels correspondants
         #
         pass
+    def move_camp_unit(self,sens):
+        if sens == 2: #capture depuis le click souris
+            if self.app.lst_arrows[2] == 2: sens = 0
+            elif self.app.lst_arrows[3] == 2: sens = 1
+            else: return
+        #
+        """
+        self.lst_gui["main_frame"][self.lst_menus[1]]["state"] = DGG.DISABLED
+        if sens == 0 and self.lst_menus[1] < 3:
+            if self.lst_menus[1] == 0: self.app.lst_arrows[1]["node"].show()
+            if self.lst_menus[1] == 2: self.app.lst_arrows[0]["node"].hide()
+            self.arc_main_menu.play("state_"+str(self.lst_menus[1])+"_"+str(self.lst_menus[1]+1)); self.lst_menus[1] += 1
+        elif sens == 1 and self.lst_menus[1] > 0:
+            if self.lst_menus[1] == 1: self.app.lst_arrows[1]["node"].hide()
+            if self.lst_menus[1] == 3: self.app.lst_arrows[0]["node"].show()
+            self.arc_main_menu.play("state_"+str(self.lst_menus[1])+"_"+str(self.lst_menus[1]-1)); self.lst_menus[1] -= 1
+        movePara = Parallel(name="texts_move")
+        for it in range(4):
+            movePara.append(self.lst_gui["main_frame"][it].posInterval(0.5,Point3(pos_texts[3-self.lst_menus[1]+it])))
+            movePara.append(self.lst_gui["main_frame"][it].scaleInterval(0.5,scale_texts[3-self.lst_menus[1]+it]))
+        movePara.start(); self.lst_gui["main_frame"][self.lst_menus[1]]["state"] = DGG.NORMAL
+        """
+        #
+        pos_texts = [(0.3,0,0.2),(0,0,0),(0.3,0,-0.5),(0.4,0,-0.6),(0.5,0,-0.68)]
+        scale_texts = [0.08,0.1,0.08,0.08,0.05]
+        #
+        print "move_camp_unit"
+        print sens
+        #
+        #TODO : déplacement des labels
+        #
+        #
     def opt_change(self,val,chx=0):
         if chx == 0 and val == 0: self.opt_var["chg"][0] = (False if self.opt_var["fullscreen"][0] == self.app.main_config["fullscreen"] else True)
         elif chx == 1:
@@ -410,11 +474,20 @@ class mainScene: #main scene class
                 self.lst_gui["main_frame"][1]["text"] = self.app.lang["main_menu"]["mission"]
                 self.lst_gui["main_frame"][2]["text"] = self.app.lang["main_menu"]["options"]
                 self.lst_gui["main_frame"][3]["text"] = self.app.lang["main_menu"]["quit"]
+                self.lst_gui["camp_frame"][0]["text"] = self.app.lang["camp_menu"]["stitre"]
+                self.lst_gui["camp_frame"][1]["text"] = self.app.lang["camp_menu"]["new_unit"]
+                self.lst_gui["camp_frame"][3]["text"] = self.app.lang["camp_menu"]["crea_unit"]
+                self.lst_gui["camp_frame"][4]["text"] = self.app.lang["camp_menu"]["used_name"]
+                self.lst_gui["camp_frame"][5]["text"] = self.app.lang["camp_menu"]["sel_lab"]
+                self.lst_gui["camp_frame"][6]["text"] = self.app.lang["camp_menu"]["launch"]
+                self.lst_gui["camp_frame"][7]["text"] = self.app.lang["camp_menu"]["supp_unit"]
+                self.lst_gui["camp_frame"][8]["text"] = self.app.lang["camp_menu"]["no_unit"]
+                self.lst_gui["camp_frame"][9]["text"] = self.app.lang["aux_menu"]["return_btn"]
                 #
-                #TODO
+                #TODO : ajout de la traduction pour le sous menu "missions"
                 #
-                #self.lst_gui["camp_frame"][0]["text"] = #
                 #
+                self.lst_gui["mission_frame"][0]["text"] = self.app.lang["mission_menu"]["stitre"]
                 #self.lst_gui["mission_frame"][0]["text"] = #
                 #
                 self.lst_gui["option_frame"][0]["text"] = self.app.lang["option_menu"]["stitre"]
@@ -433,10 +506,11 @@ class mainScene: #main scene class
         if not self.opt_var["chg"] == [False,False,False]: self.opt_var["chg"] = [False,False,False]
     def close_main_scene(self):
         #
-        #TODO
+        #TODO : fermeture de la scène principale, avec destruction de la plupart des éléments
         #
         #self.arc_main_menu
         #self.arc_aux_menu
+        #
         #
         #self.app.ignore("mouse1")
         #self.app.ignore("wheel_up")
@@ -452,14 +526,14 @@ class mainScene: #main scene class
 class cine_scene: #cinematic scene class
     def __init__(self):
         #
-        #TODO
+        #TODO : initialisation d'une scène de cinématique
         #
         pass
 
 class game_scene: #game scene class
     def __init__(self):
         #
-        #TODO
+        #TODO : initialisation d'une scène de jeu
         #
         pass
 
@@ -514,7 +588,8 @@ class ArcnsApp(DirectObject): #class ArcnsApp, main class
         self.cust_mouse.setTexture(self.cust_mouse_tex[chx])
     def change_screen(self):
         #
-        #TODO and TEST
+        #TODO : changement de la résolution
+        #TODO : ouverture d'une nouvelle fenêtre (uniquement accessible avec l'option "windowed" activée)
         #
         wp = WindowProperties()
         #

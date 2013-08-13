@@ -11,6 +11,7 @@
         "sel_lab":"Team choice :",
         "new_unit":"New team :",
         "crea_unit":"Create",
+        "used_name":"This name is already used",
         "supp_unit":"Remove",
         "launch":"Play",
         "no_unit":"No save found"

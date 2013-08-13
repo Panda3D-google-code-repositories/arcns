@@ -11,6 +11,7 @@
         "sel_lab":"Choix de l'unité :",
         "new_unit":"Nouvelle unité :",
         "crea_unit":"Créer",
+        "used_name":"Ce nom est déjà utilisé",
         "supp_unit":"Supprimer",
         "launch":"Jouer",
         "no_unit":"Aucune sauvegarde"
