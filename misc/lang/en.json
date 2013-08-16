@@ -1,4 +1,5 @@
 {
+    "main_dialog":{"valid":"Yes","cancel":"No"},
     "main_menu":{
         "campaign":"Campaign",
         "mission":"Missions",
@@ -14,7 +15,9 @@
         "used_name":"This name is already used",
         "supp_unit":"Remove",
         "launch":"Play",
-        "no_unit":"No save found"
+        "no_unit":"No save found",
+        "supp_dialog1":"Are you sure to delete",
+        "supp_dialog2":"this unit ?"
     },
     "mission_menu":{
         "stitre":"Missions :"

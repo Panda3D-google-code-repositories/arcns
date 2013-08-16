@@ -100,25 +100,18 @@ class mainScene: #main scene class
         sqp_dn = render.attachNewNode(self.app.c_arr.generate()); sqp_dn.hide(); sqp_dn.node().setIntoCollideMask(BitMask32.bit(1))
         sqp_dn.node().setTag("arrow","dn"); sqp_dn.reparentTo(self.app.pickly_node); sqp_dn.setPos(4.5,1.5,5.2)
         #arrows for campaign menu
-        #
         arr_camp_up = render.attachNewNode("arr-camp-up"); arr_camp_up.setScale(0.5); arr_camp_up.setHpr(-90,90,0); arr_camp_up.setPos(8,-2.5,7)
         arr_camp_up.hide(); self.app.arrow.instanceTo(arr_camp_up); arr_camp_up.reparentTo(render)
         self.app.lst_arrows.append({"name":"arr_camp_up","status":0,"node":arr_camp_up,"posn":[8,-2.5,7],"posh":[8.1,-2.5,7.1]})
-        #
         sqp_c_up = render.attachNewNode(self.app.c_arr.generate()); sqp_c_up.hide(); sqp_c_up.node().setIntoCollideMask(BitMask32.bit(1))
         sqp_c_up.node().setTag("arrow_c","up"); sqp_c_up.reparentTo(self.app.pickly_node)
         sqp_c_up.setScale(0.5); sqp_c_up.setHpr(-90,0,0); sqp_c_up.setPos(8,-2.5,7)
-        #
-        #
         arr_camp_dn = render.attachNewNode("arr-camp-dn"); arr_camp_dn.setScale(0.5); arr_camp_dn.setHpr(90,-90,0); arr_camp_dn.setPos(8,-2.5,2)
         arr_camp_dn.hide(); self.app.arrow.instanceTo(arr_camp_dn); arr_camp_up.reparentTo(render)
         self.app.lst_arrows.append({"name":"arr_camp_dn","status":0,"node":arr_camp_dn,"posn":[8,-2.5,2],"posh":[8.1,-2.5,1.9]})
-        #
         sqp_c_dn = render.attachNewNode(self.app.c_arr.generate()); sqp_c_dn.hide(); sqp_c_dn.node().setIntoCollideMask(BitMask32.bit(1))
         sqp_c_dn.node().setTag("arrow_c","dn"); sqp_c_dn.reparentTo(self.app.pickly_node)
         sqp_c_dn.setScale(0.5); sqp_c_dn.setHpr(-90,0,0); sqp_c_dn.setPos(8,-2.5,2.1)
-        #
-        #
         #arrows for missions menu
         #
         #TODO : arrows up/down for mission selection
@@ -250,15 +243,19 @@ class mainScene: #main scene class
             if self.app.mouse_hand.getNumEntries() > 0 and self.nomove:
                 if self.lst_menus[0] == 0:
                     tag = self.app.mouse_hand.getEntry(0).getIntoNode().getTag("arrow")
+                    nod = None
                     if tag == "up": nod = self.app.lst_arrows[0]
                     elif tag == "dn": nod = self.app.lst_arrows[1]
-                    nod["status"] = 2; nod["node"].setPos(nod["posh"][0],nod["posh"][1],nod["posh"][2])
+                    if not nod == None:
+                        nod["status"] = 2; nod["node"].setPos(nod["posh"][0],nod["posh"][1],nod["posh"][2])
                 elif self.lst_menus[0] == 1:
                     if self.lst_menus[1] == 0:
                         tag = self.app.mouse_hand.getEntry(0).getIntoNode().getTag("arrow_c")
+                        nod = None
                         if tag == "up": nod = self.app.lst_arrows[2]
                         elif tag == "dn": nod = self.app.lst_arrows[3]
-                        nod["status"] = 2; nod["node"].setPos(nod["posh"][0],nod["posh"][1],nod["posh"][2])
+                        if not nod == None:
+                            nod["status"] = 2; nod["node"].setPos(nod["posh"][0],nod["posh"][1],nod["posh"][2])
                     elif self.lst_menus[1] == 1:
                         #
                         #TODO : action des arrows pour le sous menu "missions"
@@ -275,14 +272,16 @@ class mainScene: #main scene class
             if self.app.lst_arrows[0]["status"] == 2: sens = 0
             elif self.app.lst_arrows[1]["status"] == 2: sens = 1
             else: return
+        if sens == 0 and self.lst_menus[1] == 3: return
+        elif sens == 1 and self.lst_menus[1] == 0: return
         pos_texts = [(-0.35,0,0.23),(-0.26,0,0.1),(-0.19,0,-0.04),(-0.15,0,-0.2),(-0.19,0,-0.34),(-0.26,0,-0.47),(-0.35,0,-0.58)]
         scale_texts = [0.07,0.09,0.1,0.12,0.1,0.09,0.07]
         self.lst_gui["main_frame"][self.lst_menus[1]]["state"] = DGG.DISABLED
-        if sens == 0 and self.lst_menus[1] < 3:
+        if sens == 0:
             if self.lst_menus[1] == 0: self.app.lst_arrows[1]["node"].show()
             if self.lst_menus[1] == 2: self.app.lst_arrows[0]["node"].hide()
             self.arc_main_menu.play("state_"+str(self.lst_menus[1])+"_"+str(self.lst_menus[1]+1)); self.lst_menus[1] += 1
-        elif sens == 1 and self.lst_menus[1] > 0:
+        elif sens == 1:
             if self.lst_menus[1] == 1: self.app.lst_arrows[1]["node"].hide()
             if self.lst_menus[1] == 3: self.app.lst_arrows[0]["node"].show()
             self.arc_main_menu.play("state_"+str(self.lst_menus[1])+"_"+str(self.lst_menus[1]-1)); self.lst_menus[1] -= 1
@@ -319,7 +318,7 @@ class mainScene: #main scene class
                 for it in range(12,len(self.lst_gui["camp_frame"])):
                     self.lst_gui["camp_frame"][12].removeNode(); del self.lst_gui["camp_frame"][12]
             for elt in self.gui_saves:
-                save_lab = arcLabel(elt[0],(0,0,0)); save_lab.reparentTo(self.lst_gui["frames"][1]); save_lab.hide()
+                save_lab = arcLabel(elt[0],(0.5,0,-0.68),0.05); save_lab.reparentTo(self.lst_gui["frames"][1]); save_lab.hide()
                 self.lst_gui["camp_frame"].append(save_lab); elt[4] = save_lab
         elif self.lst_menus[1] == 1:
             #
@@ -340,7 +339,7 @@ class mainScene: #main scene class
         return task.done
     def aux_affmenu_task(self,task):
         self.app.change_cursor(1); self.nomove = True; self.lst_gui["frames"][self.lst_menus[1]+1].show()
-        self.app.accept("escape",self.aux_quitmenu); self.app.accept("backspace",self.aux_quitmenu)
+        self.lst_menus[2] = 0; self.app.accept("escape",self.aux_quitmenu); self.app.accept("backspace",self.aux_quitmenu)
         if self.lst_menus[1] == 0:
             self.app.lst_arrows[2]["status"] = 1; self.app.lst_arrows[3]["status"] = 1
             #capture du clavier
@@ -348,13 +347,13 @@ class mainScene: #main scene class
             self.app.accept("enter",self.valid_aux_menu)
             #capture de la souris
             self.app.accept("mouse1",self.move_camp_unit,[2]); self.app.accept("wheel_up",self.move_camp_unit,[0])
-            self.app.accept("wheel_down",self.move_camp_unit,[1])
+            self.app.accept("wheel_down",self.move_camp_unit,[1]); self.app.accept("delete",self.supp_unit)
             if self.nb_saves == 0: self.lst_gui["camp_frame"][8].show()
             else:
                 self.lst_gui["camp_frame"][6].show(); self.lst_gui["camp_frame"][7].show()
                 self.lst_gui["camp_frame"][10]["text"] = self.gui_saves[0][2]; self.lst_gui["camp_frame"][10].show() #time
                 self.lst_gui["camp_frame"][11]["text"] = self.gui_saves[0][1]; self.lst_gui["camp_frame"][11].show() #date
-                self.gui_saves[0][4].show(); self.gui_saves[0][4].setScale(0.1)
+                self.gui_saves[0][4].show(); self.gui_saves[0][4].setScale(0.1); self.gui_saves[0][4].setPos(0,0,0)
                 if self.nb_saves > 1:
                     self.gui_saves[1][4].show(); self.gui_saves[1][4].setScale(0.08); self.gui_saves[1][4].setPos(0.3,0,-0.5)
                     if self.nb_saves > 2:
@@ -374,7 +373,7 @@ class mainScene: #main scene class
         self.app.accept("escape",sys.exit,[0]); self.app.ignore("backspace"); self.app.ignore("enter")
         self.app.ignore("arrow_up"); self.app.ignore("arrow_down")
         if self.lst_menus[1] == 0: #campaign
-            self.app.lst_arrows[2]["status"] = 0; self.app.lst_arrows[3]["status"] = 0
+            self.app.ignore("delete"); self.app.lst_arrows[2]["status"] = 0; self.app.lst_arrows[3]["status"] = 0
             self.app.lst_arrows[2]["node"].hide(); self.app.lst_arrows[3]["node"].hide()
         elif self.lst_menus[1] == 1: #missions
             #
@@ -395,44 +394,61 @@ class mainScene: #main scene class
         #
         #TODO : création d'une unité, avec le fichier correspondant, et l'ajout du label
         #
+        #
         pass
     def supp_unit(self):
         #
+        #TODO : disable sur les boutons
+        #
+        #
+        #TODO : ignore des interactions
+        #
+        #
+        self.app.voile[1]["text"] = self.app.lang["camp_menu"]["supp_dialog1"]
+        self.app.voile[2]["text"] = self.app.lang["camp_menu"]["supp_dialog2"]
+        self.app.voile[3]["command"] = self.valid_supp_unit; self.app.voile[3]["extraArgs"] = [True]
+        self.app.voile[4]["command"] = self.valid_supp_unit; self.app.voile[4]["extraArgs"] = [False]
+        self.app.voile[0].show()
+    def valid_supp_unit(self,val):
+        #
+        #TODO : condition sur val, pour connaître la validation ou non de la suppression
+        #
+        print val
+        #
         #TODO : suppression d'une unité, avec le fichier et les labels correspondants
         #
-        pass
+        print "valid supp_unit"
+        #
     def move_camp_unit(self,sens):
+        if self.nb_saves == 0 or self.nb_saves == 1: return
         if sens == 2: #capture depuis le click souris
-            if self.app.lst_arrows[2] == 2: sens = 0
-            elif self.app.lst_arrows[3] == 2: sens = 1
+            if self.app.lst_arrows[2]["status"] == 2: sens = 0
+            elif self.app.lst_arrows[3]["status"] == 2: sens = 1
             else: return
-        #
-        """
-        self.lst_gui["main_frame"][self.lst_menus[1]]["state"] = DGG.DISABLED
-        if sens == 0 and self.lst_menus[1] < 3:
-            if self.lst_menus[1] == 0: self.app.lst_arrows[1]["node"].show()
-            if self.lst_menus[1] == 2: self.app.lst_arrows[0]["node"].hide()
-            self.arc_main_menu.play("state_"+str(self.lst_menus[1])+"_"+str(self.lst_menus[1]+1)); self.lst_menus[1] += 1
-        elif sens == 1 and self.lst_menus[1] > 0:
-            if self.lst_menus[1] == 1: self.app.lst_arrows[1]["node"].hide()
-            if self.lst_menus[1] == 3: self.app.lst_arrows[0]["node"].show()
-            self.arc_main_menu.play("state_"+str(self.lst_menus[1])+"_"+str(self.lst_menus[1]-1)); self.lst_menus[1] -= 1
-        movePara = Parallel(name="texts_move")
-        for it in range(4):
-            movePara.append(self.lst_gui["main_frame"][it].posInterval(0.5,Point3(pos_texts[3-self.lst_menus[1]+it])))
-            movePara.append(self.lst_gui["main_frame"][it].scaleInterval(0.5,scale_texts[3-self.lst_menus[1]+it]))
-        movePara.start(); self.lst_gui["main_frame"][self.lst_menus[1]]["state"] = DGG.NORMAL
-        """
-        #
         pos_texts = [(0.3,0,0.2),(0,0,0),(0.3,0,-0.5),(0.4,0,-0.6),(0.5,0,-0.68)]
-        scale_texts = [0.08,0.1,0.08,0.08,0.05]
-        #
-        print "move_camp_unit"
-        print sens
-        #
-        #TODO : déplacement des labels
-        #
-        #
+        scale_texts = [0.08,0.1,0.08,0.07,0.05]
+        if sens == 0 and self.lst_menus[2] == (self.nb_saves -1): return
+        elif sens == 1 and self.lst_menus[2] == 0: return
+        if sens == 0:
+            if self.lst_menus[2] == 0: self.app.lst_arrows[3]["node"].show()
+            if self.lst_menus[2] == (self.nb_saves -2): self.app.lst_arrows[2]["node"].hide()
+            if self.lst_menus[2] > 0: self.gui_saves[self.lst_menus[2]-1][4].hide()
+            if self.lst_menus[2]+4 < self.nb_saves: self.gui_saves[self.lst_menus[2]+4][4].show()
+            self.arc_aux_menu.play("down"); self.lst_menus[2] += 1
+        elif sens == 1:
+            if self.lst_menus[2] == 1: self.app.lst_arrows[3]["node"].hide()
+            if self.lst_menus[2] == (self.nb_saves -1): self.app.lst_arrows[2]["node"].show()
+            if self.lst_menus[2] > 1: self.gui_saves[self.lst_menus[2] - 2][4].show()
+            if self.lst_menus[2]+3 < self.nb_saves: self.gui_saves[self.lst_menus[2]+3][4].hide()
+            self.arc_aux_menu.play("up"); self.lst_menus[2] -= 1
+        self.lst_gui["camp_frame"][10]["text"] = self.gui_saves[self.lst_menus[2]][2]
+        self.lst_gui["camp_frame"][11]["text"] = self.gui_saves[self.lst_menus[2]][1]
+        movePara = Parallel(name="texts_move"); start = (1 if self.lst_menus[2] == 0 else 0)
+        end = (self.nb_saves - self.lst_menus[2]+1 if (self.nb_saves - self.lst_menus[2]) < 5 else 5)
+        for it in range(start,end):
+            movePara.append(self.gui_saves[self.lst_menus[2]-1+start+(it-start)][4].posInterval(0.2,Point3(pos_texts[it])))
+            movePara.append(self.gui_saves[self.lst_menus[2]-1+start+(it-start)][4].scaleInterval(0.2,scale_texts[it]))
+        movePara.start()
     def opt_change(self,val,chx=0):
         if chx == 0 and val == 0: self.opt_var["chg"][0] = (False if self.opt_var["fullscreen"][0] == self.app.main_config["fullscreen"] else True)
         elif chx == 1:
@@ -470,6 +486,8 @@ class mainScene: #main scene class
                 self.app.main_config["lang_chx"] = self.opt_var["lang_chx"]
                 self.app.langtab = self.app.main_config["lang"][self.app.main_config["lang_chx"]]
                 self.app.lang = json.loads("".join([line.rstrip().lstrip() for line in file("misc/lang/"+self.app.langtab[0]+".json","rb")]))
+                self.app.voile[3]["text"] = self.app.lang["main_dialog"]["valid"]
+                self.app.voile[4]["text"] = self.app.lang["main_dialog"]["cancel"]
                 self.lst_gui["main_frame"][0]["text"] = self.app.lang["main_menu"]["campaign"]
                 self.lst_gui["main_frame"][1]["text"] = self.app.lang["main_menu"]["mission"]
                 self.lst_gui["main_frame"][2]["text"] = self.app.lang["main_menu"]["options"]
@@ -575,6 +593,15 @@ class ArcnsApp(DirectObject): #class ArcnsApp, main class
         #language recup
         self.langtab = self.main_config["lang"][self.main_config["lang_chx"]]
         self.lang = json.loads("".join([line.rstrip().lstrip() for line in file("misc/lang/"+self.langtab[0]+".json","rb")]))
+        #common gui elements
+        self.voile = []; self.voile.append(DirectFrame(frameSize=(-2,2,-2,2),frameColor=(0,0,0,0.8)))
+        self.voile[0].setBin("gui-popup",1); self.voile[0].hide()
+        self.voile.append(arcLabel("",(0,0,0.3),txtalgn=TextNode.ACenter)); self.voile[1].setBin("gui-popup",1); self.voile[1].reparentTo(self.voile[0])
+        self.voile.append(arcLabel("",(0,0,0.17),txtalgn=TextNode.ACenter)); self.voile[2].setBin("gui-popup",1); self.voile[2].reparentTo(self.voile[0])
+        self.voile.append(arcButton(self.lang["main_dialog"]["valid"],(-0.2,0,0),None,txtalgn=TextNode.ACenter))
+        self.voile[3].setBin("gui-popup",1); self.voile[3].reparentTo(self.voile[0])
+        self.voile.append(arcButton(self.lang["main_dialog"]["cancel"],(0.2,0,0),None,txtalgn=TextNode.ACenter))
+        self.voile[4].setBin("gui-popup",1); self.voile[4].reparentTo(self.voile[0])
         #mouse handler
         self.mouse_trav = CollisionTraverser(); self.mouse_hand = CollisionHandlerQueue()
         self.pickerNode = CollisionNode('mouseRay'); self.pickerNP = camera.attachNewNode(self.pickerNode)
